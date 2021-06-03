@@ -25,6 +25,8 @@ var (
 	_ bencode.Unmarshaler = (*Payload)(nil)
 )
 
+// MarshalBencode turns the payload into an array of 5 elements:
+// author as tfk, sequence, previous as tfk, timestamp as unix ts and content as a bencode entity (usually object or byte string for box2)
 func (p *Payload) MarshalBencode() ([]byte, error) {
 	authorAsTFK, err := tfk.FeedFromRef(p.Author)
 	if err != nil {
@@ -55,6 +57,7 @@ func (p *Payload) MarshalBencode() ([]byte, error) {
 	})
 }
 
+// UnmarshalBencode does the reverse of MarshalBencode. It expects the input to be a bencoded array of 5 entries.
 func (p *Payload) UnmarshalBencode(input []byte) error {
 	// first, split up the array in raw parts (decodeing to []interface{} is annoying if we know the types anyhow)
 	var raw []bencode.RawMessage
@@ -120,11 +123,6 @@ func (p *Payload) UnmarshalBencode(input []byte) error {
 
 	// elem 5: content
 	p.Content = raw[4]
-
-	// err = bencode.NewDecoder(bytes.NewReader(raw[4])).Decode(&p.Content)
-	// if err != nil {
-	// 	return err
-	// }
 
 	return nil
 }

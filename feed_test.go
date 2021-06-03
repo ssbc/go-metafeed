@@ -118,9 +118,9 @@ func TestDecodeEntry(t *testing.T) {
 	got += fmt.Sprintf("Content: %q", string(ee.Content))
 
 	want := `
-Author: @AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=.bemetafeed-v1
+Author: @AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=.bbfeed-v1
 Seq: 1
-Previous: %AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=.bemetamsg-v1
+Previous: %AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=.bbmsg-v1
 Timestamp: 1970-01-01 01:00:10 +0100 CET
 Content: "12:hello, world"`
 	r.Equal(want, got)

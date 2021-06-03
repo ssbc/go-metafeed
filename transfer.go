@@ -73,6 +73,7 @@ func (tr *Transfer) Verify(hmacKey *[32]byte) bool {
 	return ed25519.Verify(pubKey, tr.data, tr.signature)
 }
 
+// Payload returns the message payload inside the data portion of the transfer object.
 func (tr *Transfer) Payload() (Payload, error) {
 	if err := tr.getPayload(); err != nil {
 		return Payload{}, err
@@ -91,6 +92,8 @@ func (tr *Transfer) getPayload() error {
 	tr.payload = &p
 	return nil
 }
+
+// go-ssb compatability
 
 var _ refs.Message = (*Transfer)(nil)
 
