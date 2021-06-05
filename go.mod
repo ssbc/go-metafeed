@@ -3,6 +3,7 @@ module github.com/ssb-ngi-pointer/go-metafeed
 go 1.16
 
 require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/zeebo/bencode v1.0.0
