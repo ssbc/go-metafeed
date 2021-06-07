@@ -9,6 +9,8 @@ import (
 	"go.mindeco.de/ssb-refs/tfk"
 )
 
+type Tangles map[string]TanglePoint
+
 type TanglePoint refs.TanglePoint
 
 var (
@@ -50,7 +52,7 @@ func (tp TanglePoint) MarshalBencode() ([]byte, error) {
 			}
 		}
 
-		m["previous"] = Null
+		m["previous"] = prevs
 	}
 
 	return bencode.EncodeBytes(m)

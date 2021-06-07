@@ -4,6 +4,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+
+	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
+	refs "go.mindeco.de/ssb-refs"
 )
 
 // Base64String encodes a slice of bytes as a base64 string in unicode.
@@ -31,4 +34,24 @@ func (s *Base64String) UnmarshalJSON(data []byte) error {
 
 	*s = rawData
 	return nil
+}
+
+// toto: could possibly move this to beencodeext
+
+func tanglesToBencoded(input refs.Tangles) bencodeext.Tangles {
+	wrappedTangles := make(bencodeext.Tangles, len(input))
+
+	for name, tangle := range input {
+		wrappedTangles[name] = bencodeext.TanglePoint(tangle)
+	}
+
+	return wrappedTangles
+}
+
+func bencodedToRefTangles(input bencodeext.Tangles) refs.Tangles {
+	tm := make(refs.Tangles, len(input))
+	for name, tangle := range input {
+		tm[name] = refs.TanglePoint(tangle)
+	}
+	return tm
 }
