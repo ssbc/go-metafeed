@@ -56,7 +56,7 @@ func TestEncodeManagmentMessage(t *testing.T) {
 
 	// // make sure it's a signed add message
 	var addMsg metamngmt.Add
-	err = VerifySubSignedContent(subKey.Pair.Public, signedAddContent, &addMsg)
+	err = VerifySubSignedContent(signedAddContent, &addMsg)
 	r.NoError(err)
 
 	// now encode the message onto the feed
@@ -95,7 +95,7 @@ func TestEncodeManagmentMessage(t *testing.T) {
 	fmt.Fprintln(os.Stderr, "2nd entry encoded. Len:", len(encoded))
 	fmt.Fprintln(os.Stderr, hex.EncodeToString(encoded))
 
-	err = VerifySubSignedContent(subKey.Pair.Public, signedAddContent, &addMsg)
+	err = VerifySubSignedContent(signedAddContent, &addMsg)
 	r.NoError(err)
 
 	var p2 Payload
@@ -103,6 +103,6 @@ func TestEncodeManagmentMessage(t *testing.T) {
 	r.NoError(err)
 
 	var tombstone metamngmt.Tombstone
-	err = VerifySubSignedContent(subKey.Pair.Public, p2.Content, &tombstone)
+	err = VerifySubSignedContent(p2.Content, &tombstone)
 	r.NoError(err)
 }
