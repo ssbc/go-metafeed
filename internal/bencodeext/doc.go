@@ -6,4 +6,5 @@ package bencodeext
 
 import "github.com/zeebo/bencode"
 
+// Null (or undefined) is encoded as a 2 byte string (0x0602)
 var Null = bencode.RawMessage{'2', ':', 0x06, 0x02}

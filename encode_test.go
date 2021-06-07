@@ -130,18 +130,18 @@ func TestEncoder(t *testing.T) {
 
 		prevRef = msgRef
 
-		var tr2 Transfer
-		err = tr2.UnmarshalBencode(got)
+		var msg2 Message
+		err = msg2.UnmarshalBencode(got)
 		r.NoError(err, "msg[%02d] test decode failed", msgidx)
-		t.Logf("msg[%02d] transfer decode of %d bytes", msgidx, len(got))
-		r.True(len(tr2.data) > 0)
-		r.True(len(tr2.signature) > 0)
+		t.Logf("msg[%02d] Message decode of %d bytes", msgidx, len(got))
+		r.True(len(msg2.data) > 0)
+		r.True(len(msg2.signature) > 0)
 
-		t.Log("event bytes:", len(tr2.data))
-		t.Log(hex.EncodeToString(tr2.data))
+		t.Log("event bytes:", len(msg2.data))
+		t.Log(hex.EncodeToString(msg2.data))
 
 		var p Payload
-		err = p.UnmarshalBencode(tr2.data)
+		err = p.UnmarshalBencode(msg2.data)
 		r.NoError(err, "evt[%02d] unmarshal failed", msgidx)
 
 		a.NotNil(p.Author, "evt[%02d] has author", msgidx)

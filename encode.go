@@ -12,12 +12,14 @@ import (
 	refs "go.mindeco.de/ssb-refs"
 )
 
+// NewEncoder creates an encoding facility which uses the passed author to sign new messages
 func NewEncoder(author ed25519.PrivateKey) *Encoder {
 	pe := &Encoder{}
 	pe.privKey = author
 	return pe
 }
 
+// Encoder exposes two control options for timestamps and the hmac key and the Encode() function which creates new signed messages.
 type Encoder struct {
 	privKey ed25519.PrivateKey
 
@@ -25,10 +27,12 @@ type Encoder struct {
 	setTimestamp bool
 }
 
+// WithNowTimestamps controls wether timestamps should be used to create new messages
 func (e *Encoder) WithNowTimestamps(yes bool) {
 	e.setTimestamp = yes
 }
 
+// WithHMAC update the HMAC signing secret
 func (e *Encoder) WithHMAC(in []byte) error {
 	var k [32]byte
 	n := copy(k[:], in)
@@ -42,7 +46,8 @@ func (e *Encoder) WithHMAC(in []byte) error {
 // for testable timestamps, so that now can be reset in the tests
 var now = time.Now
 
-func (e *Encoder) Encode(sequence int32, prev refs.MessageRef, val interface{}) (*Transfer, refs.MessageRef, error) {
+// Encode uses the passed sequence and previous message reference to create a signed messages over the passed value.
+func (e *Encoder) Encode(sequence int32, prev refs.MessageRef, val interface{}) (*Message, refs.MessageRef, error) {
 	var (
 		err  error
 		next Payload
@@ -82,11 +87,11 @@ func (e *Encoder) Encode(sequence int32, prev refs.MessageRef, val interface{}) 
 		toSign = mac[:]
 	}
 
-	var tr Transfer
-	tr.data = nextEncoded
-	tr.signature = ed25519.Sign(e.privKey, toSign)
+	var msg Message
+	msg.data = nextEncoded
+	msg.signature = ed25519.Sign(e.privKey, toSign)
 
-	return &tr, tr.Key(), nil
+	return &msg, msg.Key(), nil
 }
 
 func refFromPubKey(pk ed25519.PublicKey) (refs.FeedRef, error) {

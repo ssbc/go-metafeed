@@ -17,20 +17,23 @@ var (
 	_ bencode.Unmarshaler = (*String)(nil)
 )
 
-func (b String) MarshalBencode() ([]byte, error) {
-	strLen := len(b) + 2 // two extra bytes for our BFE marker (\x06\x00)
+// MarshalBencode turns the value into a receiver in a byte string with the prefix 0x0600
+func (s String) MarshalBencode() ([]byte, error) {
+	strLen := len(s) + 2 // two extra bytes for our BFE marker (\x06\x00)
 
 	var sb strings.Builder
 	sb.WriteString(strconv.Itoa(strLen))
 	sb.WriteRune(':')
 	sb.WriteByte(0x06)
 	sb.WriteByte(0x00)
-	sb.WriteString(string(b))
+	sb.WriteString(string(s))
 
 	return []byte(sb.String()), nil
 }
 
-func (b *String) UnmarshalBencode(input []byte) error {
+// UnmarshalBencode decodes the length before the : then checks if the prefix of the string is 0x0600
+// if so, it updates the receiver with the slice after the prefix marker
+func (s *String) UnmarshalBencode(input []byte) error {
 	// split the first ':' off (length:value)
 	slices := bytes.SplitN(input, []byte{':'}, 2)
 	if len(slices) != 2 {
@@ -50,6 +53,6 @@ func (b *String) UnmarshalBencode(input []byte) error {
 		return fmt.Errorf("bencodeext: value does not have the correct marker")
 	}
 
-	*b = String(slices[1][2:])
+	*s = String(slices[1][2:])
 	return nil
 }

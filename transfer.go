@@ -15,7 +15,8 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
-type Transfer struct {
+// Message is used to create the (un)marshal a message to and from bencode while also acting as refs.Message for the rest of the ssb system.
+type Message struct {
 	data bencode.RawMessage
 
 	signature []byte
@@ -24,27 +25,29 @@ type Transfer struct {
 }
 
 var (
-	_ bencode.Marshaler   = (*Transfer)(nil)
-	_ bencode.Unmarshaler = (*Transfer)(nil)
+	_ bencode.Marshaler   = (*Message)(nil)
+	_ bencode.Unmarshaler = (*Message)(nil)
 )
 
-func (tr *Transfer) MarshalBencode() ([]byte, error) {
+// MarshalBencode turns data and signature into an bencode array [content, signature]
+func (tr *Message) MarshalBencode() ([]byte, error) {
 	return bencode.EncodeBytes([]interface{}{
-		bencode.RawMessage(tr.data),
+		tr.data,
 		tr.signature,
 	})
 }
 
-func (tr *Transfer) UnmarshalBencode(input []byte) error {
+// UnmarshalBencode expects a benocded array of [content, signature]
+func (tr *Message) UnmarshalBencode(input []byte) error {
 	var raw []bencode.RawMessage
 
 	err := bencode.NewDecoder(bytes.NewReader(input)).Decode(&raw)
 	if err != nil {
-		return fmt.Errorf("failed to decode raw transfer array: %w", err)
+		return fmt.Errorf("failed to decode raw Message array: %w", err)
 	}
 
 	if n := len(raw); n != 2 {
-		return fmt.Errorf("metafeed/transfer: expected two elemnts in the array, got %d", n)
+		return fmt.Errorf("metafeed/Message: expected two elemnts in the array, got %d", n)
 	}
 
 	// just take the data as is (that it's valid bencode was settled by the first decode pass)
@@ -53,18 +56,18 @@ func (tr *Transfer) UnmarshalBencode(input []byte) error {
 	// make sure it's a valid byte string
 	err = bencode.NewDecoder(bytes.NewReader(raw[1])).Decode(&tr.signature)
 	if err != nil {
-		return fmt.Errorf("metafeed/transfer: failed to decode signature portion: %w", err)
+		return fmt.Errorf("metafeed/Message: failed to decode signature portion: %w", err)
 	}
 
 	if n := len(tr.signature); n != ed25519.SignatureSize {
-		return fmt.Errorf("metafeed/transfer: expected %d bytes of signture - only got %d", ed25519.SignatureSize, n)
+		return fmt.Errorf("metafeed/Message: expected %d bytes of signture - only got %d", ed25519.SignatureSize, n)
 	}
 
 	return nil
 }
 
 // Verify returns true if the Message was signed by the author specified by the meta portion of the message
-func (tr *Transfer) Verify(hmacKey *[32]byte) bool {
+func (tr *Message) Verify(hmacKey *[32]byte) bool {
 	if err := tr.getPayload(); err != nil {
 		return false
 	}
@@ -73,15 +76,15 @@ func (tr *Transfer) Verify(hmacKey *[32]byte) bool {
 	return ed25519.Verify(pubKey, tr.data, tr.signature)
 }
 
-// Payload returns the message payload inside the data portion of the transfer object.
-func (tr *Transfer) Payload() (Payload, error) {
+// Payload returns the message payload inside the data portion of the Message object.
+func (tr *Message) Payload() (Payload, error) {
 	if err := tr.getPayload(); err != nil {
 		return Payload{}, err
 	}
 	return *tr.payload, nil
 }
 
-func (tr *Transfer) getPayload() error {
+func (tr *Message) getPayload() error {
 	if tr.payload != nil {
 		return nil
 	}
@@ -95,9 +98,10 @@ func (tr *Transfer) getPayload() error {
 
 // go-ssb compatability
 
-var _ refs.Message = (*Transfer)(nil)
+var _ refs.Message = (*Message)(nil)
 
-func (tr *Transfer) Key() refs.MessageRef {
+// Key returns the hash reference of the message
+func (tr *Message) Key() refs.MessageRef {
 
 	bytes, err := tr.MarshalBencode()
 	if err != nil {
@@ -114,7 +118,8 @@ func (tr *Transfer) Key() refs.MessageRef {
 	return msgKey
 }
 
-func (tr *Transfer) Seq() int64 {
+// Seq returns the sequence of th message
+func (tr *Message) Seq() int64 {
 	err := tr.getPayload()
 	if err != nil {
 		log.Println("gabbygrove/verify event decoding failed:", err)
@@ -123,7 +128,8 @@ func (tr *Transfer) Seq() int64 {
 	return int64(tr.payload.Sequence)
 }
 
-func (tr *Transfer) Author() refs.FeedRef {
+// Author returns the author who signed the message
+func (tr *Message) Author() refs.FeedRef {
 	err := tr.getPayload()
 	if err != nil {
 		panic(err)
@@ -131,7 +137,8 @@ func (tr *Transfer) Author() refs.FeedRef {
 	return tr.payload.Author
 }
 
-func (tr *Transfer) Previous() *refs.MessageRef {
+// Previous return nil for the first message and otherwise the hash reference of the previous message
+func (tr *Message) Previous() *refs.MessageRef {
 	err := tr.getPayload()
 	if err != nil {
 		panic(err)
@@ -142,12 +149,14 @@ func (tr *Transfer) Previous() *refs.MessageRef {
 	return &tr.payload.Previous
 }
 
-func (tr *Transfer) Received() time.Time {
+// Received needs to be repalced by the database (this spoofs it as the calimed timestamp)
+func (tr *Message) Received() time.Time {
 	log.Println("received time is spoofed to claimed")
 	return tr.Claimed()
 }
 
-func (tr *Transfer) Claimed() time.Time {
+// Claimed returns the time the message claims as it's timestamp
+func (tr *Message) Claimed() time.Time {
 	err := tr.getPayload()
 	if err != nil {
 		panic(err)
@@ -155,14 +164,15 @@ func (tr *Transfer) Claimed() time.Time {
 	return tr.payload.Timestamp
 }
 
-func (tr *Transfer) ContentBytes() []byte {
+// ContentBytes returns the pure bencoded content portion of the message
+func (tr *Message) ContentBytes() []byte {
 	return tr.data
 }
 
 // ValueContent returns a ssb.Value that can be represented as JSON.
 // Note that it's signature is useless for verification in this form.
-// Get the whole transfer message and use tr.Verify()
-func (tr *Transfer) ValueContent() *refs.Value {
+// Get the whole Message message and use tr.Verify()
+func (tr *Message) ValueContent() *refs.Value {
 	err := tr.getPayload()
 	if err != nil {
 		panic(err)
@@ -180,20 +190,19 @@ func (tr *Transfer) ValueContent() *refs.Value {
 
 	// TODO: peek at first byte (tfk indicating box2 for instance)
 
-	// switch tr.payload.Content.Type {
-	// case ContentTypeArbitrary:
-	// 	v, err := json.Marshal(tr.Content)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	msg.Content = json.RawMessage(v)
-	// case ContentTypeJSON:
-	// 	msg.Content = json.RawMessage(tr.Content)
-	// }
+	var helperMap map[string]interface{}
+	bencode.NewDecoder(bytes.NewReader(tr.data)).Decode(&helperMap)
+
+	msg.Content, err = json.Marshal(helperMap)
+	if err != nil {
+		panic(err)
+	}
+
 	return &msg
 }
 
-func (tr *Transfer) ValueContentJSON() json.RawMessage {
+// ValueContentJSON encodes the Message into JSON like a normal SSB message.
+func (tr *Message) ValueContentJSON() json.RawMessage {
 	jsonB, err := json.Marshal(tr.ValueContent())
 	if err != nil {
 		panic(err.Error())

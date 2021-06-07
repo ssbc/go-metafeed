@@ -11,6 +11,7 @@ import (
 
 // SubSignContent uses the passed private key to sign the passed content after it was encoded.
 // It then packs both fields as an array [content, signature].
+// TODO: add hmac signing
 func SubSignContent(pk ed25519.PrivateKey, content bencode.Marshaler) (bencode.RawMessage, error) {
 	contentBytes, err := content.MarshalBencode()
 	if err != nil {
@@ -34,6 +35,7 @@ func SubSignContent(pk ed25519.PrivateKey, content bencode.Marshaler) (bencode.R
 
 // VerifySubSignedContent expects an array of [content, signature] where 'content' needs to contain
 // a 'subfeed' field which contains the tfk encoded publickey to verify the signature.
+// TODO: add hmac signing
 func VerifySubSignedContent(rawMessage []byte, content bencode.Unmarshaler) error {
 	// make sure it's an array
 	var arr []bencode.RawMessage

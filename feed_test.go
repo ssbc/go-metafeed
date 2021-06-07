@@ -37,7 +37,7 @@ func createTestEntry(author refs.FeedRef) metafeed.Payload {
 	}
 }
 
-func ExampleSingleEntry() {
+func ExamplePayload() {
 	pubKey := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}
 	exAuthor, err := refs.NewFeedRefFromBytes(pubKey, refs.RefAlgoFeedMetaBencode)
 	check(err)
@@ -126,7 +126,8 @@ Content: "12:hello, world"`
 	r.Equal(want, got)
 }
 
-// basic bencode test, showing that 1 and 0 integers are used to represent true and false
+// basic bencode test, showing that 1 and 0 integers are used to represent true and false.
+// See internal/bencodeext for how we deal with these ambiguities.
 func TestBoolValues(t *testing.T) {
 	r := require.New(t)
 

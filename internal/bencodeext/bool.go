@@ -7,6 +7,7 @@ import (
 	"github.com/zeebo/bencode"
 )
 
+// Bool is encoded as a 3 byte string. 0x060100 for false and 0x060101 for true.
 type Bool bool
 
 var (

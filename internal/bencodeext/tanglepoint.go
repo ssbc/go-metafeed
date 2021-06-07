@@ -9,8 +9,10 @@ import (
 	"go.mindeco.de/ssb-refs/tfk"
 )
 
+// Tangles are a named set of tanglepoints
 type Tangles map[string]TanglePoint
 
+// TanglePoint wrapps a normal tanglepoint with bencode marshaling capabilities
 type TanglePoint refs.TanglePoint
 
 var (
@@ -18,6 +20,7 @@ var (
 	_ bencode.Unmarshaler = (*TanglePoint)(nil)
 )
 
+// MarshalBencode encodes root and previous as Null if it's not set. If they are, it turns them into tfk byte strings.
 func (tp TanglePoint) MarshalBencode() ([]byte, error) {
 	var m = make(map[string]interface{}, 2)
 
@@ -58,6 +61,7 @@ func (tp TanglePoint) MarshalBencode() ([]byte, error) {
 	return bencode.EncodeBytes(m)
 }
 
+// UnmarshalBencode checks if either are Null and if not, decodes them from tfk.
 func (tp *TanglePoint) UnmarshalBencode(input []byte) error {
 	var rawBytes struct {
 		Root     []byte             `bencode:"root"`
