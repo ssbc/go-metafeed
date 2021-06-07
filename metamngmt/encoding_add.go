@@ -16,30 +16,30 @@ func (a Add) MarshalBencode() ([]byte, error) {
 	// create TFK values for sub- and meta-feed
 	subFeedTFK, err := tfk.FeedFromRef(a.SubFeed)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("metafeed/add: failed to turn subfeed into tfk: %w", err)
 	}
 	sfBytes, err := subFeedTFK.MarshalBinary()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("metafeed/add: failed to encode tfk subfeed: %w", err)
 	}
 
 	metaFeedTFK, err := tfk.FeedFromRef(a.MetaFeed)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("metafeed/add: failed to turn metafeed into tfk: %w", err)
 	}
 	mfBytes, err := metaFeedTFK.MarshalBinary()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("metafeed/add: failed to encode tfk metafeed: %w", err)
 	}
 
 	// now create a map of all the values and let the bencode lib sort it
-	value := map[string]interface{}{
-		"type":        bencodeext.String(a.Type),
-		"feedformat":  bencodeext.String(a.FeedFormat),
-		"feedpurpose": bencodeext.String(a.FeedPurpose),
-		"subfeed":     sfBytes,
-		"metafeed":    mfBytes,
-		"nonce":       []byte(a.Nonce),
+	var value = wrappedAdd{
+		Type:        bencodeext.String(a.Type),
+		FeedFormat:  bencodeext.String(a.FeedFormat),
+		FeedPurpose: bencodeext.String(a.FeedPurpose),
+		SubFeed:     sfBytes,
+		MetaFeed:    mfBytes,
+		Nonce:       a.Nonce,
 	}
 
 	if n := len(a.Tangles); n > 0 {
@@ -49,7 +49,7 @@ func (a Add) MarshalBencode() ([]byte, error) {
 			wrappedTangles[name] = bencodeext.TanglePoint(tangle)
 		}
 
-		value["tangles"] = wrappedTangles
+		value.Tangles = wrappedTangles
 	}
 
 	return bencode.EncodeBytes(value)
