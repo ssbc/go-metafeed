@@ -9,6 +9,7 @@
 package metamngmt
 
 import (
+	"github.com/zeebo/bencode"
 	refs "go.mindeco.de/ssb-refs"
 )
 
@@ -28,6 +29,11 @@ func NewSeedMessage(meta refs.FeedRef, seed []byte) Seed {
 		Seed:     seed,
 	}
 }
+
+var (
+	_ bencode.Marshaler   = (*Seed)(nil)
+	_ bencode.Unmarshaler = (*Seed)(nil)
+)
 
 // Add links the new sub feed with the main (meta)feed using a new message on the meta feed signed by both the main feed and the meta feed.
 type Add struct {
@@ -62,6 +68,11 @@ func NewAddMessage(meta, sub refs.FeedRef, format, purpose string, nonce []byte)
 	}
 }
 
+var (
+	_ bencode.Marshaler   = (*Add)(nil)
+	_ bencode.Unmarshaler = (*Add)(nil)
+)
+
 // Announce is used in order for existing applications to know that a feed supports meta feeds.
 // This message is created on the main feed.
 type Announce struct {
@@ -81,6 +92,11 @@ func NewAnnounceMessage(f refs.FeedRef) Announce {
 	}
 }
 
+var (
+	_ bencode.Marshaler   = (*Announce)(nil)
+	_ bencode.Unmarshaler = (*Announce)(nil)
+)
+
 type Tombstone struct {
 	Type    string       `json:"type"`
 	SubFeed refs.FeedRef `json:"subfeed"`
@@ -98,3 +114,8 @@ func NewTombstoneMessage(f refs.FeedRef) Tombstone {
 		Tangles: make(refs.Tangles),
 	}
 }
+
+var (
+	_ bencode.Marshaler   = (*Tombstone)(nil)
+	_ bencode.Unmarshaler = (*Tombstone)(nil)
+)
