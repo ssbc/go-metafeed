@@ -60,6 +60,9 @@ func TestEncodeManagmentMessage(t *testing.T) {
 	verified := ed25519.Verify(subKey.Pair.Public, tv[0], sigBytes)
 	r.True(verified)
 
+	fmt.Fprintln(os.Stderr, "encoded content:")
+	fmt.Fprintln(os.Stderr, hex.Dump(tv[0]))
+
 	var addMsg metamngmt.Add
 	err = addMsg.UnmarshalBencode(tv[0])
 	r.NoError(err)
@@ -75,5 +78,7 @@ func TestEncodeManagmentMessage(t *testing.T) {
 
 	encodedAdd, err := signedAddMessage.MarshalBencode()
 	r.NoError(err)
+
+	fmt.Fprintln(os.Stderr, "encoded entry:")
 	fmt.Fprintln(os.Stderr, hex.Dump(encodedAdd))
 }

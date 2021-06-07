@@ -2,9 +2,7 @@ package metamngmt
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
-	"os"
 
 	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
 	"github.com/zeebo/bencode"
@@ -69,8 +67,6 @@ type wrappedAdd struct {
 }
 
 func (a *Add) UnmarshalBencode(input []byte) error {
-	fmt.Fprintln(os.Stderr, hex.Dump(input))
-
 	var wa wrappedAdd
 	err := bencode.NewDecoder(bytes.NewReader(input)).Decode(&wa)
 	if err != nil {
