@@ -8,6 +8,7 @@ import (
 
 	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
 	"github.com/zeebo/bencode"
+	refs "go.mindeco.de/ssb-refs"
 	"go.mindeco.de/ssb-refs/tfk"
 )
 
@@ -103,6 +104,11 @@ func (a *Add) UnmarshalBencode(input []byte) error {
 	}
 
 	a.Nonce = wa.Nonce
+
+	a.Tangles = make(refs.Tangles, len(wa.Tangles))
+	for name, tangle := range wa.Tangles {
+		a.Tangles[name] = refs.TanglePoint(tangle)
+	}
 
 	return nil
 }

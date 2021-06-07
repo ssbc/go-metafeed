@@ -5,7 +5,10 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/hex"
+	"fmt"
 	"io"
+	"os"
 	"testing"
 
 	"github.com/ssb-ngi-pointer/go-metafeed"
@@ -47,7 +50,6 @@ func TestEncodeManagmentMessage(t *testing.T) {
 	var tv []bencode.RawMessage
 	err = bencode.DecodeBytes(signedAddContent, &tv)
 	r.NoError(err)
-	// spew.Dump(tv)
 
 	// strip of the length prefix to get the pure bytes
 	var sigBytes []byte
@@ -68,6 +70,10 @@ func TestEncodeManagmentMessage(t *testing.T) {
 
 	t.Log(msgKey.Ref())
 
-	signedAddMessage.MarshalBencode()
+	valid := signedAddMessage.Verify(nil)
+	r.True(valid)
 
+	encodedAdd, err := signedAddMessage.MarshalBencode()
+	r.NoError(err)
+	fmt.Fprintln(os.Stderr, hex.Dump(encodedAdd))
 }
