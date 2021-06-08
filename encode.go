@@ -81,15 +81,17 @@ func (e *Encoder) Encode(sequence int32, prev refs.MessageRef, val interface{}) 
 		return nil, refs.MessageRef{}, fmt.Errorf("metafeed: failed to encode next entry: %w", err)
 	}
 
-	toSign := nextEncoded
+	toSign := append(signatureInputPrefix, nextEncoded...)
 	if e.hmacSecret != nil {
-		mac := auth.Sum(nextEncoded, e.hmacSecret)
+		mac := auth.Sum(toSign, e.hmacSecret)
 		toSign = mac[:]
 	}
 
 	var msg Message
 	msg.data = nextEncoded
-	msg.signature = ed25519.Sign(e.privKey, toSign)
+
+	sig := ed25519.Sign(e.privKey, toSign)
+	msg.signature = append(signatureOutputPrefix, sig...)
 
 	return &msg, msg.Key(), nil
 }

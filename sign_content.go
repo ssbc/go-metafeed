@@ -9,6 +9,14 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
+var (
+	// this gets prepended to the sign()/verify() input and achives domain seperation
+	signatureInputPrefix = []byte("metafeeds")
+
+	// these two bytes are TFK/BFE identifiers to clerify that the bytes are a signature
+	signatureOutputPrefix = []byte{0x04, 0x00}
+)
+
 // SubSignContent uses the passed private key to sign the passed content after it was encoded.
 // It then packs both fields as an array [content, signature].
 // TODO: add hmac signing
@@ -18,11 +26,12 @@ func SubSignContent(pk ed25519.PrivateKey, content bencode.Marshaler) (bencode.R
 		return nil, fmt.Errorf("SubSignContent: failed to encode content for signing: %w", err)
 	}
 
-	sig := ed25519.Sign(pk, contentBytes)
+	signedMessage := append(signatureInputPrefix, contentBytes...)
+	sig := ed25519.Sign(pk, signedMessage)
 
 	signedValue := []interface{}{
 		bencode.RawMessage(contentBytes),
-		sig,
+		append(signatureOutputPrefix, sig...),
 	}
 
 	contentAndSig, err := bencode.EncodeBytes(signedValue)
@@ -76,8 +85,13 @@ func VerifySubSignedContent(rawMessage []byte, content bencode.Unmarshaler) erro
 		return err
 	}
 
+	if !bytes.HasPrefix(sigBytes, signatureOutputPrefix) {
+		return fmt.Errorf("VerifySubSignedContent: expected signature prefix")
+	}
+
 	// manually check the signature againt entry 1
-	verified := ed25519.Verify(pubKey, arr[0], sigBytes)
+	signedMessage := append(signatureInputPrefix, arr[0]...)
+	verified := ed25519.Verify(pubKey, signedMessage, sigBytes[2:])
 	if !verified {
 		return fmt.Errorf("VerifySubSignedContent: signature failed")
 	}

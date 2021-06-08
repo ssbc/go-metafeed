@@ -59,8 +59,8 @@ func (tr *Message) UnmarshalBencode(input []byte) error {
 		return fmt.Errorf("metafeed/Message: failed to decode signature portion: %w", err)
 	}
 
-	if n := len(tr.signature); n != ed25519.SignatureSize {
-		return fmt.Errorf("metafeed/Message: expected %d bytes of signture - only got %d", ed25519.SignatureSize, n)
+	if n := len(tr.signature); n != ed25519.SignatureSize+2 {
+		return fmt.Errorf("metafeed/Message: expected %d bytes of signture - only got %d", ed25519.SignatureSize+2, n)
 	}
 
 	return nil
@@ -73,7 +73,12 @@ func (tr *Message) Verify(hmacKey *[32]byte) bool {
 	}
 	pubKey := tr.payload.Author.PubKey()
 
-	return ed25519.Verify(pubKey, tr.data, tr.signature)
+	if !bytes.HasPrefix(tr.signature, signatureOutputPrefix) {
+		return false
+	}
+
+	signedMessage := append(signatureInputPrefix, tr.data...)
+	return ed25519.Verify(pubKey, signedMessage, tr.signature[2:])
 }
 
 // Payload returns the message payload inside the data portion of the Message object.
