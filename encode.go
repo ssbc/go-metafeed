@@ -55,6 +55,10 @@ func (e *Encoder) Encode(sequence int32, prev refs.MessageRef, val interface{}) 
 		pubKeyBytes = []byte(e.privKey.Public().(ed25519.PublicKey))
 	)
 
+	if prevAlgo := prev.Algo(); prevAlgo != refs.RefAlgoMessageMetaBencode {
+		return nil, refs.MessageRef{}, fmt.Errorf("metafeed: previous is not a bb-msg reference but %s", prevAlgo)
+	}
+
 	next.Author, err = refs.NewFeedRefFromBytes(pubKeyBytes, refs.RefAlgoFeedMetaBencode)
 	if err != nil {
 		return nil, refs.MessageRef{}, err

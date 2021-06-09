@@ -24,7 +24,7 @@ func GenerateSeed() ([]byte, error) {
 	return sbuf, err
 }
 
-func DeriveFromSeed(seed []byte, label string) (KeyPair, error) {
+func DeriveFromSeed(seed []byte, label string, algo refs.RefAlgo) (KeyPair, error) {
 	// TODO: confirm with @arj
 	// if n := len(seed); n != SeedLength {
 	// 	return KeyPair{}, fmt.Errorf("metakeys: seed has wrong length: %d", n)
@@ -47,7 +47,7 @@ func DeriveFromSeed(seed []byte, label string) (KeyPair, error) {
 		return KeyPair{}, fmt.Errorf("metakeys: failed to generate keypair from derived data: %w", err)
 	}
 
-	feed, err := refs.NewFeedRefFromBytes(ekp.Public, refs.RefAlgoFeedMetaBencode)
+	feed, err := refs.NewFeedRefFromBytes(ekp.Public, algo)
 	return KeyPair{
 		Feed: feed,
 		Pair: ekp,

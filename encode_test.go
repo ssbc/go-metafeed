@@ -34,9 +34,12 @@ func generatePrivateKey(t testing.TB, r io.Reader) (ed25519.PublicKey, ed25519.P
 }
 
 type testVector struct {
-	KeyPairSeed hexString
+	Description string
 
-	Author refs.FeedRef
+	KeyPairSeed hexString
+	Author      refs.FeedRef
+
+	Metadata []interface{} `json:",omitempty"`
 
 	Entries []testVectorEntry
 }
@@ -52,12 +55,23 @@ type testVectorEntry struct {
 	HighlevelContent interface{}
 }
 
+type tvHexMetadata struct {
+	Name      string
+	HexString hexString
+}
+
+type tvSubfeedAuthor struct {
+	Name string
+	Feed refs.FeedRef
+}
+
 func TestEncoder(t *testing.T) {
 	r := require.New(t)
 	a := assert.New(t)
 
 	// the vectors for other implementations
 	var tv testVector
+	tv.Description = "3 messages, not even metafeed related. Simple, arbitrary entries."
 
 	dead := bytes.Repeat([]byte("dead"), 8)
 	pubKey, privKey := generatePrivateKey(t, bytes.NewReader(dead))
@@ -157,7 +171,7 @@ func TestEncoder(t *testing.T) {
 		tv.Entries[msgidx] = tvEntry
 	}
 
-	vectorFile, err := os.OpenFile("testvector.json", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	vectorFile, err := os.OpenFile("testvector-simple.json", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	r.NoError(err)
 
 	err = json.NewEncoder(vectorFile).Encode(tv)
