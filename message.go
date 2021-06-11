@@ -3,6 +3,7 @@ package metafeed
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -64,6 +65,22 @@ func (tr *Message) UnmarshalBencode(input []byte) error {
 	}
 
 	return nil
+}
+
+// for storage
+var (
+	_ encoding.BinaryMarshaler   = (*Message)(nil)
+	_ encoding.BinaryUnmarshaler = (*Message)(nil)
+)
+
+// MarshalBinary for now, calls the bencode versions (performance profiling pending)
+func (tr *Message) MarshalBinary() ([]byte, error) {
+	return tr.MarshalBencode()
+}
+
+// UnmarshalBinary for now, calls the bencode versions (performance profiling pending)
+func (tr *Message) UnmarshalBinary(input []byte) error {
+	return tr.UnmarshalBencode(input)
 }
 
 // Verify returns true if the Message was signed by the author specified by the meta portion of the message
@@ -194,11 +211,13 @@ func (tr *Message) ValueContent() *refs.Value {
 	msg.Timestamp = encodedTime.Millisecs(tr.Claimed())
 
 	// TODO: peek at first byte (tfk indicating box2 for instance)
+	var helper interface{}
+	err = bencode.NewDecoder(bytes.NewReader(tr.payload.Content)).Decode(&helper)
+	if err != nil {
+		panic(err)
+	}
 
-	var helperMap map[string]interface{}
-	bencode.NewDecoder(bytes.NewReader(tr.data)).Decode(&helperMap)
-
-	msg.Content, err = json.Marshal(helperMap)
+	msg.Content, err = json.Marshal(helper)
 	if err != nil {
 		panic(err)
 	}
