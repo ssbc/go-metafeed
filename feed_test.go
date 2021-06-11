@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package metafeed_test
 
 import (

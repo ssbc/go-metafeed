@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package metamngmt
 
 func (a Announce) MarshalBencode() ([]byte, error) {

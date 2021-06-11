@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // Package metamngmt contains all the managment types that one needs to have in order to work with metafeeds.
 //
 // This includes:

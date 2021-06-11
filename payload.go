@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // Package metafeed implements the SSB metafeed spec to enable partial replication.
 package metafeed
 
