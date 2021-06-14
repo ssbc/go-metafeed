@@ -7,13 +7,10 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/zeebo/bencode v1.0.0
 	go.mindeco.de v1.12.0
-	go.mindeco.de/ssb-refs v0.3.0
+	go.mindeco.de/ssb-refs v0.3.2-0.20210614150840-16a0c3c5f512
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )
-
-// just temporary for the new RefAlgos
-replace go.mindeco.de/ssb-refs => /home/cryptix/go-repos/ssb-refs
 
 // We need our internal/extra25519 since agl pulled his repo recently.
 // Issue: https://github.com/cryptoscope/ssb/issues/44

@@ -17,7 +17,7 @@ import (
 	refs "go.mindeco.de/ssb-refs"
 )
 
-func TestEncodeManagmentMessage(t *testing.T) {
+func TestGenerateTestVectorForMetaFeedManagment(t *testing.T) {
 	r := require.New(t)
 
 	// the vectors for other implementations
@@ -29,11 +29,12 @@ func TestEncodeManagmentMessage(t *testing.T) {
 	// metaSeed, err := metakeys.GenerateSeed()
 	// r.NoError(err)
 	metaSeed := bytes.Repeat([]byte("sec0"), 8)
-	tv.KeyPairSeed = metaSeed
+	tv.Metadata = append(tv.Metadata,
+		tvHexMetadata{"Seed for Metafeed KeyPair", metaSeed},
+	)
 
 	metaKey, err := metakeys.DeriveFromSeed(metaSeed, metakeys.RootLabel, refs.RefAlgoFeedMetaBencode)
 	r.NoError(err)
-	tv.Author = metaKey.Feed
 
 	// create encoder for meta-feed entries
 	enc := NewEncoder(metaKey.Pair.Secret)
@@ -50,9 +51,9 @@ func TestEncodeManagmentMessage(t *testing.T) {
 	// var nonce = make([]byte, 32)
 	// io.ReadFull(rand.Reader, nonce)
 	var nonce = bytes.Repeat([]byte{0x23}, 32)
-	tv.Metadata = []interface{}{
+	tv.Metadata = append(tv.Metadata,
 		tvHexMetadata{"subfeed1 nonce", nonce},
-	}
+	)
 
 	// create the subfeed keypair
 	seededLabel := "ssb-meta-feed-seed-v1:" + base64.StdEncoding.EncodeToString(nonce)
@@ -78,6 +79,7 @@ func TestEncodeManagmentMessage(t *testing.T) {
 
 	// start building the first entry for the test vector file
 	var tvEntry testVectorEntry
+	tvEntry.Author = metaKey.Feed
 	tvEntry.Sequence = 1
 	tvEntry.Timestamp = 0
 	tvEntry.HighlevelContent = []interface{}{
@@ -97,13 +99,13 @@ func TestEncodeManagmentMessage(t *testing.T) {
 	signedAddMessage, msg1Key, err := enc.Encode(1, zeroPrevious, signedAddContent)
 	r.NoError(err)
 	tvEntry.Key = msg1Key
-
 	addFirstSubfeedMsg := msg1Key
+
+	tvEntry.Signature = signedAddMessage.signature
 
 	// make sure it's signature checks out
 	valid := signedAddMessage.Verify(nil)
 	r.True(valid)
-
 	// encode and append entry one to the test vectors
 	encoded, err := signedAddMessage.MarshalBencode()
 	r.NoError(err)
@@ -133,6 +135,7 @@ func TestEncodeManagmentMessage(t *testing.T) {
 	r.NoError(err)
 
 	var tvEntry2 testVectorEntry
+	tvEntry2.Author = metaKey.Feed
 	tvEntry2.Previous = msg1Key
 	tvEntry2.Sequence = 2
 	tvEntry2.Timestamp = 0
@@ -145,9 +148,10 @@ func TestEncodeManagmentMessage(t *testing.T) {
 	}
 
 	// now encode and sign the 2nd message
-	signedAdd2Message, msg2Key, err := enc.Encode(2, msg1Key, signedAddContent)
+	signedAdd2Message, msg2Key, err := enc.Encode(2, msg1Key, signedAdd2Content)
 	r.NoError(err)
 	tvEntry2.Key = msg2Key
+	tvEntry2.Signature = signedAdd2Message.signature
 
 	// encode and append entry two to the test vectors
 	encoded, err = signedAdd2Message.MarshalBencode()
@@ -164,6 +168,7 @@ func TestEncodeManagmentMessage(t *testing.T) {
 	r.NoError(err)
 
 	var tvEntry3 testVectorEntry
+	tvEntry3.Author = metaKey.Feed
 	tvEntry3.Previous = msg2Key
 	tvEntry3.Sequence = 3
 	tvEntry3.Timestamp = 0
@@ -179,6 +184,7 @@ func TestEncodeManagmentMessage(t *testing.T) {
 	signedTombstoneMessage, msg3Key, err := enc.Encode(3, msg2Key, signedTombstoneContent)
 	r.NoError(err)
 	tvEntry3.Key = msg3Key
+	tvEntry3.Signature = signedTombstoneMessage.signature
 
 	// assert the signed content is signed correctly
 	valid = signedTombstoneMessage.Verify(nil)

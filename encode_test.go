@@ -38,9 +38,6 @@ func generatePrivateKey(t testing.TB, r io.Reader) (ed25519.PublicKey, ed25519.P
 type testVector struct {
 	Description string
 
-	KeyPairSeed hexString
-	Author      refs.FeedRef
-
 	Metadata []interface{} `json:",omitempty"`
 
 	Entries []testVectorEntry
@@ -51,10 +48,12 @@ type testVectorEntry struct {
 
 	Key refs.MessageRef
 
+	Author           refs.FeedRef
 	Sequence         int32
 	Previous         refs.MessageRef
 	Timestamp        int64
 	HighlevelContent interface{}
+	Signature        hexString
 }
 
 type tvHexMetadata struct {
@@ -77,7 +76,9 @@ func TestEncoder(t *testing.T) {
 
 	dead := bytes.Repeat([]byte("dead"), 8)
 	pubKey, privKey := generatePrivateKey(t, bytes.NewReader(dead))
-	tv.KeyPairSeed = dead
+	tv.Metadata = append(tv.Metadata,
+		tvHexMetadata{"Seed for Metafeed KeyPair", dead},
+	)
 
 	authorRef, err := refFromPubKey(pubKey)
 	r.NoError(err)
@@ -86,8 +87,6 @@ func TestEncoder(t *testing.T) {
 	now = fakeNow
 
 	t.Log("kp:", authorRef.Ref())
-
-	tv.Author = authorRef
 
 	var msgs = []interface{}{
 		append([]byte{0x03, 0x02}, []byte("s01mBytzLikeBox2")...),
@@ -106,9 +105,9 @@ func TestEncoder(t *testing.T) {
 
 	// the wanted transfer objects as hex
 	wantHex := []string{
-		"6c6c33343a0002aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd69316533343a01020000000000000000000000000000000000000000000000000000000000000000692d356531383a03027330316d4279747a4c696b65426f78326536363a04004c76c63e6b464da4dcb735bb169139b01ad0971a6495f164f7b53b1b7407a390922f0573478144f1982a0d237d30ab8b9dcbe1f578b332cac012102d8f0e2a0e65",
-		"6c6c33343a0002aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd69326533343a01023ead9763b4aa1c5fd14e2ba94c13cfdb759ac3919bd12bb3c0477e2d9b633b20692d346564313a69693165343a74797065343a74657374656536363a0400b9623836cfe6df0b92bb59f6b8e0281e5c0f002732ba87ce1486f39f09f16f292b8b5e79ca18eb481393033dda07bd3f8deae350829efb304b3da56599de350b65",
-		"6c6c33343a0002aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd69336533343a010298fa1b1849f13235b9ec5a46784f47a678856e352254049d6ab7e76fb97d5ff5692d336564373a636f6e7461637435353a4072745061746c7a70344e624644556238372f745649706274496262677454656d6f42684664633650584c303d2e6262666565642d763131303a73706563746174696e67693165343a74797065373a636f6e74616374656536363a040055c5161d8a04f54daf0f37e8caea0952644355cf8a2d02ef1ebf482f113b4212ba66199cf354f55520c15ae4454fc2c4471e5fa2b50d9f8be78a45e57e0f6f0065",
+		"6c6c33343a0004aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd69316533343a01030000000000000000000000000000000000000000000000000000000000000000692d356531383a03027330316d4279747a4c696b65426f78326536363a0400db72f9eb5ec0da2d8e6e069e1bc113b3359332bf4b9bd7f56a0e8ed3daedfd1d999359f2e2a6c8a055edde8c9d267c97fc599c73b01150842dd95d71d3b1080c65",
+		"6c6c33343a0004aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd69326533343a010320f3667270b4440db75be93c580d3d307fedf1cd92f226bf3f6f7d58501cce45692d346564313a69693165343a74797065343a74657374656536363a0400b40fea01e3e87c7ae280b71be58a0be91452224d110d93032756403ac9d42f20c6f8f5e861c7ff2621522d441597f8e5ecac033ce7648936c1219c58b5c2100765",
+		"6c6c33343a0004aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd69336533343a0103baf94c582eaa036a6da524153c1c2f8700be4f78fee70482855e5ac358edb60c692d336564373a636f6e7461637435353a4072745061746c7a70344e624644556238372f745649706274496262677454656d6f42684664633650584c303d2e6262666565642d763131303a73706563746174696e67693165343a74797065373a636f6e74616374656536363a0400f0d3b69d1aae71c2b1ae56a19d88702bf6d98296716139df9abf6336883ac9eb5089055a67d9a2ef7f9a46d9dd3c4ad340d1d32c415b25844ef14d4d187f7d0665",
 	}
 
 	prevRef, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageMetaBencode)
@@ -122,6 +121,7 @@ func TestEncoder(t *testing.T) {
 
 		var tvEntry testVectorEntry
 		tvEntry.HighlevelContent = msg
+		tvEntry.Author = authorRef
 		tvEntry.Sequence = seq
 
 		tr, msgRef, err := e.Encode(seq, prevRef, msg)
@@ -152,6 +152,7 @@ func TestEncoder(t *testing.T) {
 		t.Logf("msg[%02d] Message decode of %d bytes", msgidx, len(got))
 		r.True(len(msg2.data) > 0)
 		r.True(len(msg2.signature) > 0)
+		tvEntry.Signature = msg2.signature
 
 		t.Log("event bytes:", len(msg2.data))
 		t.Log(hex.EncodeToString(msg2.data))

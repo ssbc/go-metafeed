@@ -54,7 +54,7 @@ func (p *Payload) MarshalBencode() ([]byte, error) {
 	} else {
 		prevAsBytes = bytes.Repeat([]byte{0}, 32+2)
 		prevAsBytes[0] = tfk.TypeMessage
-		prevAsBytes[1] = tfk.FormatMessageBeMeta
+		prevAsBytes[1] = tfk.FormatMessageMetaFeed
 	}
 
 	output, err := bencode.EncodeBytes([]interface{}{
