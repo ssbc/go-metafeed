@@ -24,7 +24,7 @@ func TestGenSeed(t *testing.T) {
 func TestDeriveFromSeed(t *testing.T) {
 	r := require.New(t)
 
-	algo := refs.RefAlgoFeedMetaBencode
+	algo := refs.RefAlgoFeedBendyButt
 
 	testSeed, err := hex.DecodeString("4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39")
 	r.NoError(err)

@@ -135,7 +135,7 @@ func (tr *Message) Key() refs.MessageRef {
 	h := sha256.New()
 	h.Write(bytes)
 
-	msgKey, err := refs.NewMessageRefFromBytes(h.Sum(nil), refs.RefAlgoMessageMetaBencode)
+	msgKey, err := refs.NewMessageRefFromBytes(h.Sum(nil), refs.RefAlgoMessageBendyButt)
 	if err != nil {
 		panic(err)
 	}

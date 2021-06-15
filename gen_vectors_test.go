@@ -33,7 +33,7 @@ func TestGenerateTestVectorForMetaFeedManagment(t *testing.T) {
 		tvHexMetadata{"Seed for Metafeed KeyPair", metaSeed},
 	)
 
-	metaKey, err := metakeys.DeriveFromSeed(metaSeed, metakeys.RootLabel, refs.RefAlgoFeedMetaBencode)
+	metaKey, err := metakeys.DeriveFromSeed(metaSeed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
 	r.NoError(err)
 
 	// create encoder for meta-feed entries
@@ -91,7 +91,7 @@ func TestGenerateTestVectorForMetaFeedManagment(t *testing.T) {
 	}
 
 	// zero previous for the first entry
-	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageMetaBencode)
+	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
 	r.NoError(err)
 	tvEntry.Previous = zeroPrevious
 

@@ -26,7 +26,7 @@ func check(err error) {
 }
 
 func createTestEntry(author refs.FeedRef) metafeed.Payload {
-	zeroPrev, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageMetaBencode)
+	zeroPrev, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
 	check(err)
 
 	// now construct a test entry
@@ -41,10 +41,10 @@ func createTestEntry(author refs.FeedRef) metafeed.Payload {
 
 func ExamplePayload() {
 	pubKey := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}
-	exAuthor, err := refs.NewFeedRefFromBytes(pubKey, refs.RefAlgoFeedMetaBencode)
+	exAuthor, err := refs.NewFeedRefFromBytes(pubKey, refs.RefAlgoFeedBendyButt)
 	check(err)
 
-	exampleFile, err := os.OpenFile("example-feed-entry.bemeta", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0600)
+	exampleFile, err := os.OpenFile("example-feed-entry.bendybutt", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0600)
 	check(err)
 	defer exampleFile.Close()
 
@@ -92,7 +92,7 @@ func TestDecodeEntry(t *testing.T) {
 	r := require.New(t)
 
 	pubKey := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}
-	exAuthor, err := refs.NewFeedRefFromBytes(pubKey, refs.RefAlgoFeedMetaBencode)
+	exAuthor, err := refs.NewFeedRefFromBytes(pubKey, refs.RefAlgoFeedBendyButt)
 	r.NoError(err)
 
 	var (
