@@ -41,7 +41,6 @@ var (
 type Add struct {
 	Type string `json:"type"`
 
-	FeedFormat  string `json:"feedformat"`
 	FeedPurpose string `json:"feedpurpose"`
 
 	SubFeed  refs.FeedRef `json:"subfeed"`
@@ -54,14 +53,13 @@ type Add struct {
 
 // NewAddMessage just initializes type and the passed fields.
 // Callers need to set the right tangle point themselves afterwards.
-func NewAddMessage(meta, sub refs.FeedRef, format, purpose string, nonce []byte) Add {
+func NewAddMessage(meta, sub refs.FeedRef, purpose string, nonce []byte) Add {
 	return Add{
 		Type: "metafeed/add",
 
 		SubFeed:  sub,
 		MetaFeed: meta,
 
-		FeedFormat:  format,
 		FeedPurpose: purpose,
 
 		Nonce: nonce,
