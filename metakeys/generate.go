@@ -61,6 +61,14 @@ type KeyPair struct {
 	Pair EdKeyPair
 }
 
+func (kp KeyPair) ID() refs.FeedRef {
+	return kp.Feed
+}
+
+func (kp KeyPair) Secret() ed25519.PrivateKey {
+	return kp.Pair.Secret
+}
+
 type EdKeyPair struct {
 	Public ed25519.PublicKey
 	Secret ed25519.PrivateKey
