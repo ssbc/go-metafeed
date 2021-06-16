@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // Package bencodeext defines some extenstions for bencode to work better with the existing JavaScript type system.
 // Mainly, it adds a way to encode bools, null/undefined and unicode values without ambiguity.
 //

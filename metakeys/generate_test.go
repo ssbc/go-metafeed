@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package metakeys_test
 
 import (
@@ -6,6 +8,7 @@ import (
 
 	"github.com/ssb-ngi-pointer/go-metafeed/metakeys"
 	"github.com/stretchr/testify/require"
+	refs "go.mindeco.de/ssb-refs"
 )
 
 func TestGenSeed(t *testing.T) {
@@ -21,15 +24,17 @@ func TestGenSeed(t *testing.T) {
 func TestDeriveFromSeed(t *testing.T) {
 	r := require.New(t)
 
+	algo := refs.RefAlgoFeedBendyButt
+
 	testSeed, err := hex.DecodeString("4e2ce5ca70cd12cc0cee0a5285b61fbc3b5f4042287858e613f9a8bf98a70d39")
 	r.NoError(err)
 
 	testLabel := ""
-	_, err = metakeys.DeriveFromSeed(testSeed, testLabel)
+	_, err = metakeys.DeriveFromSeed(testSeed, testLabel, algo)
 	r.Error(err, "label can't be empty")
 
 	testLabel = metakeys.RootLabel
-	kp, err := metakeys.DeriveFromSeed(testSeed, testLabel)
+	kp, err := metakeys.DeriveFromSeed(testSeed, testLabel, algo)
 	r.NoError(err)
 
 	// the metafeed impl has "@+Io5SIzFW+BvLV246CW05g6jLkTvLilp7IW+9irQkfU=.ed25519" here

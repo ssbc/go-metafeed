@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package metafeed_test
 
 import (
@@ -24,7 +26,7 @@ func check(err error) {
 }
 
 func createTestEntry(author refs.FeedRef) metafeed.Payload {
-	zeroPrev, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageMetaBencode)
+	zeroPrev, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
 	check(err)
 
 	// now construct a test entry
@@ -39,10 +41,10 @@ func createTestEntry(author refs.FeedRef) metafeed.Payload {
 
 func ExamplePayload() {
 	pubKey := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}
-	exAuthor, err := refs.NewFeedRefFromBytes(pubKey, refs.RefAlgoFeedMetaBencode)
+	exAuthor, err := refs.NewFeedRefFromBytes(pubKey, refs.RefAlgoFeedBendyButt)
 	check(err)
 
-	exampleFile, err := os.OpenFile("example-feed-entry.bemeta", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0600)
+	exampleFile, err := os.OpenFile("example-feed-entry.bendybutt", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0600)
 	check(err)
 	defer exampleFile.Close()
 
@@ -77,9 +79,9 @@ func ExamplePayload() {
 	}
 
 	// Output:
-	// 00000000  6c 33 34 3a 00 02 01 02  03 04 05 06 07 08 09 0a  |l34:............|
+	// 00000000  6c 33 34 3a 00 04 01 02  03 04 05 06 07 08 09 0a  |l34:............|
 	// 00000010  0b 0c 0d 0e 0f 10 11 12  13 14 15 16 17 18 19 1a  |................|
-	// 00000020  1b 1c 1d 1e 1f 20 69 31  65 33 34 3a 01 02 00 00  |..... i1e34:....|
+	// 00000020  1b 1c 1d 1e 1f 20 69 31  65 33 34 3a 01 03 00 00  |..... i1e34:....|
 	// 00000030  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
 	// 00000040  00 00 00 00 00 00 00 00  00 00 00 00 00 00 69 31  |..............i1|
 	// 00000050  30 65 31 32 3a 68 65 6c  6c 6f 2c 20 77 6f 72 6c  |0e12:hello, worl|
@@ -90,7 +92,7 @@ func TestDecodeEntry(t *testing.T) {
 	r := require.New(t)
 
 	pubKey := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}
-	exAuthor, err := refs.NewFeedRefFromBytes(pubKey, refs.RefAlgoFeedMetaBencode)
+	exAuthor, err := refs.NewFeedRefFromBytes(pubKey, refs.RefAlgoFeedBendyButt)
 	r.NoError(err)
 
 	var (

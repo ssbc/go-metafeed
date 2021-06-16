@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package metafeed
 
 import (
@@ -55,7 +57,11 @@ func (e *Encoder) Encode(sequence int32, prev refs.MessageRef, val interface{}) 
 		pubKeyBytes = []byte(e.privKey.Public().(ed25519.PublicKey))
 	)
 
-	next.Author, err = refs.NewFeedRefFromBytes(pubKeyBytes, refs.RefAlgoFeedMetaBencode)
+	if prevAlgo := prev.Algo(); prevAlgo != refs.RefAlgoMessageBendyButt {
+		return nil, refs.MessageRef{}, fmt.Errorf("metafeed: previous is not a bb-msg reference but %s", prevAlgo)
+	}
+
+	next.Author, err = refs.NewFeedRefFromBytes(pubKeyBytes, refs.RefAlgoFeedBendyButt)
 	if err != nil {
 		return nil, refs.MessageRef{}, err
 	}
@@ -100,5 +106,5 @@ func refFromPubKey(pk ed25519.PublicKey) (refs.FeedRef, error) {
 	if len(pk) != ed25519.PublicKeySize {
 		return refs.FeedRef{}, fmt.Errorf("invalid public key")
 	}
-	return refs.NewFeedRefFromBytes(pk, refs.RefAlgoFeedMetaBencode)
+	return refs.NewFeedRefFromBytes(pk, refs.RefAlgoFeedBendyButt)
 }
