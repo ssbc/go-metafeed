@@ -65,7 +65,7 @@ func TestGenerateTestVectorForMetaFeedManagment(t *testing.T) {
 
 	// Message 1: create add message
 	// ==========
-	addSubFeed1Msg := metamngmt.NewAddMessage(metaKey.Feed, subKey.Feed, "classic", "main default", nonce)
+	addSubFeed1Msg := metamngmt.NewAddMessage(metaKey.Feed, subKey.Feed, "main default", nonce)
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
@@ -127,7 +127,7 @@ func TestGenerateTestVectorForMetaFeedManagment(t *testing.T) {
 		Name: "subfeed2 author", Feed: subKey2.Feed,
 	})
 
-	addSubFeed2Msg := metamngmt.NewAddMessage(metaKey.Feed, subKey2.Feed, "gabby-grove-v1", "experimental", nonce2)
+	addSubFeed2Msg := metamngmt.NewAddMessage(metaKey.Feed, subKey2.Feed, "experimental", nonce2)
 	addSubFeed2Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content

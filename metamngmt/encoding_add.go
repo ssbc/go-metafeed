@@ -13,7 +13,6 @@ import (
 
 type wrappedAdd struct {
 	Type        bencodeext.String `bencode:"type"`
-	FeedFormat  bencodeext.String `bencode:"feedformat"`
 	FeedPurpose bencodeext.String `bencode:"feedpurpose"`
 
 	SubFeed  []byte `bencode:"subfeed"`
@@ -47,7 +46,6 @@ func (a Add) MarshalBencode() ([]byte, error) {
 	// now create a map of all the values and let the bencode lib sort it
 	var value = wrappedAdd{
 		Type:        bencodeext.String(a.Type),
-		FeedFormat:  bencodeext.String(a.FeedFormat),
 		FeedPurpose: bencodeext.String(a.FeedPurpose),
 		SubFeed:     sfBytes,
 		MetaFeed:    mfBytes,
@@ -83,7 +81,6 @@ func (a *Add) UnmarshalBencode(input []byte) error {
 		return fmt.Errorf("metafeed/add: invalid message type: %s", a.Type)
 	}
 
-	a.FeedFormat = string(wa.FeedFormat)
 	a.FeedPurpose = string(wa.FeedPurpose)
 
 	a.SubFeed, err = subFeed.Feed()
