@@ -37,7 +37,7 @@ func TestGenerateTestVectorForMetaFeedManagment(t *testing.T) {
 	r.NoError(err)
 
 	// create encoder for meta-feed entries
-	enc := NewEncoder(metaKey.Pair.Secret)
+	enc := NewEncoder(metaKey.Secret())
 
 	// fake timestamp
 	enc.WithNowTimestamps(true)
@@ -69,7 +69,7 @@ func TestGenerateTestVectorForMetaFeedManagment(t *testing.T) {
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
-	signedAddContent, err := SubSignContent(subKey.Pair.Secret, addSubFeed1Msg)
+	signedAddContent, err := SubSignContent(subKey.Secret(), addSubFeed1Msg)
 	r.NoError(err)
 
 	// make sure it's a signed add message
@@ -131,7 +131,7 @@ func TestGenerateTestVectorForMetaFeedManagment(t *testing.T) {
 	addSubFeed2Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
-	signedAdd2Content, err := SubSignContent(subKey2.Pair.Secret, addSubFeed2Msg)
+	signedAdd2Content, err := SubSignContent(subKey2.Secret(), addSubFeed2Msg)
 	r.NoError(err)
 
 	var tvEntry2 testVectorEntry
@@ -164,7 +164,7 @@ func TestGenerateTestVectorForMetaFeedManagment(t *testing.T) {
 	tomb := metamngmt.NewTombstoneMessage(subKey.Feed)
 	tomb.Tangles["metafeed"] = refs.TanglePoint{Root: &addFirstSubfeedMsg, Previous: refs.MessageRefs{addFirstSubfeedMsg}}
 
-	signedTombstoneContent, err := SubSignContent(subKey.Pair.Secret, tomb)
+	signedTombstoneContent, err := SubSignContent(subKey.Secret(), tomb)
 	r.NoError(err)
 
 	var tvEntry3 testVectorEntry

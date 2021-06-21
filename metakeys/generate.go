@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -36,29 +37,31 @@ func DeriveFromSeed(seed []byte, label string, algo refs.RefAlgo) (KeyPair, erro
 		return KeyPair{}, fmt.Errorf("metakeys: label can't be empty")
 	}
 
-	out := make([]byte, ed25519.SeedSize)
+	derived := make([]byte, ed25519.SeedSize)
 	r := hkdf.New(sha256.New, seed, nil, []byte(label))
-	_, err := r.Read(out)
+	_, err := r.Read(derived)
 	if err != nil {
 		return KeyPair{}, fmt.Errorf("metakeys: error deriving key: %w", err)
 	}
 
-	var ekp EdKeyPair
-	ekp.Public, ekp.Secret, err = ed25519.GenerateKey(bytes.NewReader(out))
+	public, secret, err := ed25519.GenerateKey(bytes.NewReader(derived))
 	if err != nil {
 		return KeyPair{}, fmt.Errorf("metakeys: failed to generate keypair from derived data: %w", err)
 	}
 
-	feed, err := refs.NewFeedRefFromBytes(ekp.Public, algo)
+	feed, err := refs.NewFeedRefFromBytes(public, algo)
 	return KeyPair{
-		Feed: feed,
-		Pair: ekp,
+		Seed:       seed,
+		Feed:       feed,
+		PrivateKey: secret,
 	}, err
 }
 
 type KeyPair struct {
-	Feed refs.FeedRef
-	Pair EdKeyPair
+	Seed []byte
+
+	Feed       refs.FeedRef
+	PrivateKey ed25519.PrivateKey
 }
 
 func (kp KeyPair) ID() refs.FeedRef {
@@ -66,10 +69,49 @@ func (kp KeyPair) ID() refs.FeedRef {
 }
 
 func (kp KeyPair) Secret() ed25519.PrivateKey {
-	return kp.Pair.Secret
+	return kp.PrivateKey
 }
 
-type EdKeyPair struct {
-	Public ed25519.PublicKey
-	Secret ed25519.PrivateKey
+var (
+	_ json.Marshaler   = (*KeyPair)(nil)
+	_ json.Unmarshaler = (*KeyPair)(nil)
+)
+
+type typedKeyPair struct {
+	Type       string
+	Seed       []byte
+	Feed       refs.FeedRef
+	PrivateKey ed25519.PrivateKey
+}
+
+func (kp KeyPair) MarshalJSON() ([]byte, error) {
+	var tkp = typedKeyPair{"bendy-butt", kp.Seed, kp.Feed, kp.PrivateKey}
+	return json.Marshal(tkp)
+}
+
+func (kp *KeyPair) UnmarshalJSON(input []byte) error {
+	var newKp typedKeyPair
+	err := json.Unmarshal(input, &newKp)
+	if err != nil {
+		return err
+	}
+
+	if newKp.Feed.Algo() != refs.RefAlgoFeedBendyButt {
+		return fmt.Errorf("input data is not a bendybutt metafeed keypair")
+	}
+
+	if n := len(newKp.PrivateKey); n != ed25519.PrivateKeySize {
+		return fmt.Errorf("private key has the wrong size: %d", n)
+	}
+
+	if n := len(newKp.Seed); n != SeedLength {
+		return fmt.Errorf("seed data has the wrong size: %d", n)
+	}
+
+	// copy values
+	kp.Feed = newKp.Feed
+	kp.Seed = newKp.Seed
+	kp.PrivateKey = newKp.PrivateKey
+
+	return nil
 }
