@@ -190,7 +190,14 @@ func (tr *Message) Claimed() time.Time {
 
 // ContentBytes returns the pure bencoded content portion of the message
 func (tr *Message) ContentBytes() []byte {
-	return tr.data
+
+	var arr []bencode.RawMessage
+	err := bencode.NewDecoder(bytes.NewReader(tr.data)).Decode(&arr)
+	if err != nil {
+		panic(err)
+	}
+
+	return arr[4]
 }
 
 // ValueContent returns a ssb.Value that can be represented as JSON.
