@@ -209,7 +209,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 	tv.Entries = append(tv.Entries, tvEntry3)
 
 	// finally, create the test vector file
-	vectorFile, err := os.OpenFile("testvector-metafeed-managment.json", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	vectorFile, err := os.OpenFile("../../testvector-metafeed-managment.json", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	r.NoError(err)
 
 	err = json.NewEncoder(vectorFile).Encode(tv)
