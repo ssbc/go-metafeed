@@ -93,11 +93,11 @@ func TestEncoder(t *testing.T) {
 		tvEntry.Author = authorRef
 		tvEntry.Sequence = seq
 
-		tr, msgRef, err := e.Encode(seq, prevRef, msg)
+		signedMsg, msgRef, err := e.Encode(seq, prevRef, msg)
 		r.NoError(err, "msg[%02d]Encode failed", msgidx)
 		r.NotNil(msgRef)
 
-		got, err := tr.MarshalBencode()
+		got, err := signedMsg.MarshalBencode()
 		r.NoError(err, "msg[%02d]Marshal failed", msgidx)
 
 		want, err := hex.DecodeString(wantHex[msgidx])
@@ -108,7 +108,7 @@ func TestEncoder(t *testing.T) {
 			t.Log("got", hex.EncodeToString(got))
 		}
 
-		a.True(tr.Verify(nil), "msg[%02d] did not verify", msgidx)
+		a.True(signedMsg.Verify(nil), "msg[%02d] did not verify", msgidx)
 
 		tvEntry.Key = msgRef
 		tvEntry.EncodedData = got

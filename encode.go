@@ -9,8 +9,8 @@ import (
 
 	"github.com/zeebo/bencode"
 	"golang.org/x/crypto/ed25519"
-	"golang.org/x/crypto/nacl/auth"
 
+	"github.com/ssb-ngi-pointer/go-metafeed/internal/sign"
 	refs "go.mindeco.de/ssb-refs"
 )
 
@@ -91,17 +91,9 @@ func (e *Encoder) Encode(sequence int32, prev refs.MessageRef, val interface{}) 
 		return nil, refs.MessageRef{}, fmt.Errorf("metafeed: failed to encode next entry: %w", err)
 	}
 
-	toSign := append(signatureInputPrefix, nextEncoded...)
-	if e.hmacSecret != nil {
-		mac := auth.Sum(toSign, e.hmacSecret)
-		toSign = mac[:]
-	}
-
 	var msg Message
 	msg.Data = nextEncoded
-
-	sig := ed25519.Sign(e.privKey, toSign)
-	msg.Signature = append(signatureOutputPrefix, sig...)
+	msg.Signature = sign.Create(nextEncoded, e.privKey, e.hmacSecret)
 
 	return &msg, msg.Key(), nil
 }

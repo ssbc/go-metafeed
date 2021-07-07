@@ -14,8 +14,10 @@ import (
 
 	"github.com/zeebo/bencode"
 	"go.mindeco.de/encodedTime"
-	refs "go.mindeco.de/ssb-refs"
 	"golang.org/x/crypto/ed25519"
+
+	"github.com/ssb-ngi-pointer/go-metafeed/internal/sign"
+	refs "go.mindeco.de/ssb-refs"
 )
 
 // Message is used to create the (un)marshal a message to and from bencode while also acting as refs.Message for the rest of the ssb system.
@@ -92,12 +94,7 @@ func (msg *Message) Verify(hmacKey *[32]byte) bool {
 	}
 	pubKey := msg.payload.Author.PubKey()
 
-	if !bytes.HasPrefix(msg.Signature, signatureOutputPrefix) {
-		return false
-	}
-
-	signedMessage := append(signatureInputPrefix, msg.Data...)
-	return ed25519.Verify(pubKey, signedMessage, msg.Signature[2:])
+	return sign.Verify(msg.Data, msg.Signature, pubKey, hmacKey)
 }
 
 // Payload returns the message payload inside the data portion of the Message object.
