@@ -48,6 +48,10 @@ func (e *Encoder) WithHMAC(in []byte) error {
 // for testable timestamps, so that now can be reset in the tests
 var now = time.Now
 
+func SetNow(fn func() time.Time) {
+	now = fn
+}
+
 // Encode uses the passed sequence and previous message reference to create a signed messages over the passed value.
 func (e *Encoder) Encode(sequence int32, prev refs.MessageRef, val interface{}) (*Message, refs.MessageRef, error) {
 	var (
@@ -94,10 +98,10 @@ func (e *Encoder) Encode(sequence int32, prev refs.MessageRef, val interface{}) 
 	}
 
 	var msg Message
-	msg.data = nextEncoded
+	msg.Data = nextEncoded
 
 	sig := ed25519.Sign(e.privKey, toSign)
-	msg.signature = append(signatureOutputPrefix, sig...)
+	msg.Signature = append(signatureOutputPrefix, sig...)
 
 	return &msg, msg.Key(), nil
 }

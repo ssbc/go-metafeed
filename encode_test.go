@@ -6,12 +6,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/ssb-ngi-pointer/go-metafeed/internal/vectors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	refs "go.mindeco.de/ssb-refs"
@@ -35,49 +35,18 @@ func generatePrivateKey(t testing.TB, r io.Reader) (ed25519.PublicKey, ed25519.P
 	return pub, priv
 }
 
-type testVector struct {
-	Description string
-
-	Metadata []interface{} `json:",omitempty"`
-
-	Entries []testVectorEntry
-}
-
-type testVectorEntry struct {
-	EncodedData hexString
-
-	Key refs.MessageRef
-
-	Author           refs.FeedRef
-	Sequence         int32
-	Previous         refs.MessageRef
-	Timestamp        int64
-	HighlevelContent interface{}
-	Signature        hexString
-}
-
-type tvHexMetadata struct {
-	Name      string
-	HexString hexString
-}
-
-type tvSubfeedAuthor struct {
-	Name string
-	Feed refs.FeedRef
-}
-
 func TestEncoder(t *testing.T) {
 	r := require.New(t)
 	a := assert.New(t)
 
 	// the vectors for other implementations
-	var tv testVector
+	var tv vectors.Good
 	tv.Description = "3 messages, not even metafeed related. Simple, arbitrary entries."
 
 	dead := bytes.Repeat([]byte("dead"), 8)
 	pubKey, privKey := generatePrivateKey(t, bytes.NewReader(dead))
 	tv.Metadata = append(tv.Metadata,
-		tvHexMetadata{"Seed for Metafeed KeyPair", dead},
+		vectors.HexMetadata{"Seed for Metafeed KeyPair", dead},
 	)
 
 	authorRef, err := refFromPubKey(pubKey)
@@ -101,7 +70,7 @@ func TestEncoder(t *testing.T) {
 		},
 	}
 
-	tv.Entries = make([]testVectorEntry, len(msgs))
+	tv.Entries = make([]vectors.EntryGood, len(msgs))
 
 	// the wanted transfer objects as hex
 	wantHex := []string{
@@ -119,7 +88,7 @@ func TestEncoder(t *testing.T) {
 	for msgidx, msg := range msgs {
 		seq := int32(msgidx + 1)
 
-		var tvEntry testVectorEntry
+		var tvEntry vectors.EntryGood
 		tvEntry.HighlevelContent = msg
 		tvEntry.Author = authorRef
 		tvEntry.Sequence = seq
@@ -150,15 +119,15 @@ func TestEncoder(t *testing.T) {
 		err = msg2.UnmarshalBencode(got)
 		r.NoError(err, "msg[%02d] test decode failed", msgidx)
 		t.Logf("msg[%02d] Message decode of %d bytes", msgidx, len(got))
-		r.True(len(msg2.data) > 0)
-		r.True(len(msg2.signature) > 0)
-		tvEntry.Signature = msg2.signature
+		r.True(len(msg2.Data) > 0)
+		r.True(len(msg2.Signature) > 0)
+		tvEntry.Signature = msg2.Signature
 
-		t.Log("event bytes:", len(msg2.data))
-		t.Log(hex.EncodeToString(msg2.data))
+		t.Log("event bytes:", len(msg2.Data))
+		t.Log(hex.EncodeToString(msg2.Data))
 
 		var p Payload
-		err = p.UnmarshalBencode(msg2.data)
+		err = p.UnmarshalBencode(msg2.Data)
 		r.NoError(err, "evt[%02d] unmarshal failed", msgidx)
 
 		a.NotNil(p.Author, "evt[%02d] has author", msgidx)
@@ -180,29 +149,4 @@ func TestEncoder(t *testing.T) {
 	err = json.NewEncoder(vectorFile).Encode(tv)
 	r.NoError(err)
 	r.NoError(vectorFile.Close())
-}
-
-// utils for test vector encoding
-
-type hexString []byte
-
-func (s hexString) MarshalJSON() ([]byte, error) {
-	str := hex.EncodeToString([]byte(s))
-	return json.Marshal(str)
-}
-
-func (s *hexString) UnmarshalJSON(data []byte) error {
-	var strData string
-	err := json.Unmarshal(data, &strData)
-	if err != nil {
-		return fmt.Errorf("hexString: json decode of string failed: %w", err)
-	}
-
-	rawData, err := hex.DecodeString(strData)
-	if err != nil {
-		return fmt.Errorf("hexString: decoding hex to raw bytes failed: %w", err)
-	}
-
-	*s = rawData
-	return nil
 }
