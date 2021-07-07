@@ -46,6 +46,9 @@ func TestGenerateTestVectorWithInvalidMessages(t *testing.T) {
 	t.Run("non zero previous on first message", badPreviousNonZero(&tv.Cases))
 	t.Run("wrong previous on 2nd message", badPreviousInvalid(&tv.Cases))
 
+	t.Run("invalid signature marker", invalidSignatureMarkers(&tv.Cases))
+	t.Run("broken signature (bits flipped)", brokenSignature(&tv.Cases))
+
 	// finally, create the test vector file
 	vectorFile, err := os.OpenFile("../../testvector-metafeed-bad.json", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	r.NoError(err)
@@ -415,6 +418,124 @@ func badPreviousInvalid(cases *[]vectors.BadCase) func(t *testing.T) {
 		})
 
 		bc.Entries = append(bc.Entries, entry2)
+
+		// add the case to the vector file
+		*cases = append(*cases, bc)
+	}
+}
+
+func invalidSignatureMarkers(cases *[]vectors.BadCase) func(t *testing.T) {
+	return func(t *testing.T) {
+		r := require.New(t)
+
+		var bc vectors.BadCase
+		bc.Description = "4.1: invalid signature marker, first two bytes (just one message)"
+
+		// create a a keypair for an invalid formatted author
+		seed := bytes.Repeat([]byte("sec5"), 8)
+		bc.Metadata = append(bc.Metadata,
+			vectors.HexMetadata{" KeyPair Seed", seed},
+		)
+
+		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+		r.NoError(err)
+
+		// create encoder for meta-feed entries
+		enc := metafeed.NewEncoder(badAuthor.Secret())
+
+		// fake timestamp
+		enc.WithNowTimestamps(true)
+		zeroTime := time.Unix(0, 0)
+		metafeed.SetNow(func() time.Time {
+			return zeroTime
+		})
+
+		// zero previous for the first entry
+		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+		r.NoError(err)
+
+		// the content is not important for this case
+		exMsg := map[string]interface{}{"type": "test"}
+
+		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+		r.NoError(err)
+
+		var entry vectors.EntryBad
+		entry.Reason = "invalid signature"
+		entry.Invalid = true
+		entry.MessageFields = map[string]interface{}{
+			"Sequence": 1,
+		}
+
+		// break the signature
+		copy(signedMsg.Signature[:2], []byte{0xac, 0xab})
+
+		encoded, err := signedMsg.MarshalBencode()
+		r.NoError(err)
+
+		entry.EncodedData = encoded
+
+		bc.Entries = append(bc.Entries, entry)
+
+		// add the case to the vector file
+		*cases = append(*cases, bc)
+	}
+}
+
+func brokenSignature(cases *[]vectors.BadCase) func(t *testing.T) {
+	return func(t *testing.T) {
+		r := require.New(t)
+
+		var bc vectors.BadCase
+		bc.Description = "4.2: invalid signature (just one message)"
+
+		// create a a keypair for an invalid formatted author
+		seed := bytes.Repeat([]byte("sec5"), 8)
+		bc.Metadata = append(bc.Metadata,
+			vectors.HexMetadata{" KeyPair Seed", seed},
+		)
+
+		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+		r.NoError(err)
+
+		// create encoder for meta-feed entries
+		enc := metafeed.NewEncoder(badAuthor.Secret())
+
+		// fake timestamp
+		enc.WithNowTimestamps(true)
+		zeroTime := time.Unix(0, 0)
+		metafeed.SetNow(func() time.Time {
+			return zeroTime
+		})
+
+		// zero previous for the first entry
+		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+		r.NoError(err)
+
+		// the content is not important for this case
+		exMsg := map[string]interface{}{"type": "test"}
+
+		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+		r.NoError(err)
+
+		var entry vectors.EntryBad
+		entry.Reason = "invalid signature"
+		entry.Invalid = true
+		entry.MessageFields = map[string]interface{}{
+			"Sequence": 1,
+		}
+
+		// break the signature
+		for i, s := range signedMsg.Signature[2:] {
+			signedMsg.Signature[i+2] = s ^ 0xff
+		}
+
+		encoded, err := signedMsg.MarshalBencode()
+		r.NoError(err)
+
+		entry.EncodedData = encoded
+
+		bc.Entries = append(bc.Entries, entry)
 
 		// add the case to the vector file
 		*cases = append(*cases, bc)
