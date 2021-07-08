@@ -383,7 +383,7 @@ func badPreviousLength(cases *[]vectors.BadCase) func(t *testing.T) {
 		r.NoError(err)
 
 		// the content is not important for this case
-		exMsg := map[string]interface{}{"type": "test", "i": 1}
+		exMsg := map[string]interface{}{"type": "test", "name": t.Name()}
 
 		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
 		r.NoError(err)
@@ -452,7 +452,7 @@ func badPreviousNonZero(cases *[]vectors.BadCase) func(t *testing.T) {
 		r.NoError(err)
 
 		var entry vectors.EntryBad
-		entry.Reason = "bad previous length"
+		entry.Reason = "bad non zero first"
 		entry.Invalid = true
 
 		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {

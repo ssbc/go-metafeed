@@ -141,6 +141,19 @@ func (p *Payload) UnmarshalBencode(input []byte) error {
 		return fmt.Errorf("metafeed/payload: failed to turn previous tfk into a message: %w", err)
 	}
 
+	if p.Sequence == 1 {
+
+		var prev = make([]byte, 32)
+		err = p.Previous.CopyHashTo(prev)
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(prev, bytes.Repeat([]byte{0}, 32)) {
+			return fmt.Errorf("metafeed/payload: invalid first message previous entry")
+		}
+
+	}
 	// elem 4: timestamp
 	var tsInSeconds int64
 	err = bencode.NewDecoder(bytes.NewReader(raw[3])).Decode(&tsInSeconds)

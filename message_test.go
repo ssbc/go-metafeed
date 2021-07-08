@@ -23,15 +23,21 @@ func TestBadVector(t *testing.T) {
 	f.Close()
 
 	// make sure each entry is valid bencode data at least
+cases:
 	for ci, c := range tv.Cases {
 		for ei, e := range c.Entries {
 			var msg metafeed.Message
 			err := msg.UnmarshalBencode(e.EncodedData)
-			r.NoError(err, "case%d entry%d passed on %s", ci, ei, e.Reason)
+			r.NoError(err, "case%d entry%d passed on %s", ci, ei, c.Description)
 
-			r.False(msg.Verify(nil), "case%d entry%d (%s) verified!", ci, ei, e.Reason)
+			if e.Invalid {
+				r.False(msg.Verify(nil), "case%d entry%d (%s) verified!", ci, ei, c.Description)
+				t.Logf("case%d entry%d (%s) checked", ci, ei, c.Description)
+			} else {
+				// TODO make a chain
+				continue cases
+			}
 
-			t.Logf("case%d entry%d (%s) checked", ci, ei, e.Reason)
 		}
 	}
 
