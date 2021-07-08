@@ -118,13 +118,11 @@ func badAuthorType(cases *[]vectors.BadCase) func(t *testing.T) {
 		entry.Reason = "Bad Author TFK Type"
 		entry.Invalid = true
 
-		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
 			// set TFK type from 0 to 255
 			r.Equal(uint8(0), msgFields[0][3])
 			msgFields[0][3] = 0xff
 		})
-
-		entry.EncodedData = resigned
 
 		bc.Entries = append(bc.Entries, entry)
 
@@ -173,13 +171,11 @@ func badAuthorFormat(cases *[]vectors.BadCase) func(t *testing.T) {
 		entry.Reason = "Bad Author TFK format"
 		entry.Invalid = true
 
-		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
 			// set TFK format to 255
 			r.Equal(uint8(3), msgFields[0][4])
 			msgFields[0][4] = 0xff
 		})
-
-		entry.EncodedData = resigned
 
 		bc.Entries = append(bc.Entries, entry)
 
@@ -228,7 +224,7 @@ func badAuthorLength(cases *[]vectors.BadCase) func(t *testing.T) {
 		entry.Reason = "Bad Author TFK Length"
 		entry.Invalid = true
 
-		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
 			// decode to splice of the length
 			var data []byte
 			err := bencode.DecodeBytes(msgFields[0], &data)
@@ -242,8 +238,6 @@ func badAuthorLength(cases *[]vectors.BadCase) func(t *testing.T) {
 			msgFields[0], err = bencode.EncodeBytes(data)
 			r.NoError(err)
 		})
-
-		entry.EncodedData = resigned
 
 		bc.Entries = append(bc.Entries, entry)
 
@@ -292,13 +286,11 @@ func badPreviousType(cases *[]vectors.BadCase) func(t *testing.T) {
 		entry.Reason = "bad previous type"
 		entry.Invalid = true
 
-		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
 			// set TFK type from 1 to 255
 			r.Equal(uint8(1), msgFields[2][3])
 			msgFields[2][3] = 0xff
 		})
-
-		entry.EncodedData = resigned
 
 		bc.Entries = append(bc.Entries, entry)
 
@@ -347,13 +339,11 @@ func badPreviousFormat(cases *[]vectors.BadCase) func(t *testing.T) {
 		entry.Reason = "bad previous format"
 		entry.Invalid = true
 
-		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
 			// set TFK format to 255
 			r.Equal(uint8(4), msgFields[2][4])
 			msgFields[2][4] = 0xff
 		})
-
-		entry.EncodedData = resigned
 
 		bc.Entries = append(bc.Entries, entry)
 
@@ -402,7 +392,7 @@ func badPreviousLength(cases *[]vectors.BadCase) func(t *testing.T) {
 		entry.Reason = "bad previous length"
 		entry.Invalid = true
 
-		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
 			// decode to splice of the length
 			var data []byte
 			err := bencode.DecodeBytes(msgFields[2], &data)
@@ -417,8 +407,6 @@ func badPreviousLength(cases *[]vectors.BadCase) func(t *testing.T) {
 			r.NoError(err)
 
 		})
-
-		entry.EncodedData = resigned
 
 		bc.Entries = append(bc.Entries, entry)
 
@@ -467,13 +455,11 @@ func badPreviousNonZero(cases *[]vectors.BadCase) func(t *testing.T) {
 		entry.Reason = "bad previous length"
 		entry.Invalid = true
 
-		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
 			// overwrite zero bytes with ff's
 			ffs := bytes.Repeat([]byte{0xff}, 32)
 			copy(msgFields[2][5:], ffs)
 		})
-
-		entry.EncodedData = resigned
 
 		bc.Entries = append(bc.Entries, entry)
 
