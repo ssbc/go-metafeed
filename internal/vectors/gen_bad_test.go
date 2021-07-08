@@ -552,10 +552,10 @@ func badSequence(cases *[]vectors.BadCase) func(t *testing.T) {
 		r := require.New(t)
 
 		var bc vectors.BadCase
-		bc.Description = "3.2: 2nd message has wrong previous"
+		bc.Description = "5.1: two messages with bad sequences (1 and 3)"
 
 		// create a a keypair for an invalid formatted author
-		seed := bytes.Repeat([]byte("sec4"), 8)
+		seed := bytes.Repeat([]byte("sec6"), 8)
 		bc.Metadata = append(bc.Metadata,
 			vectors.HexMetadata{" KeyPair Seed", seed},
 		)
