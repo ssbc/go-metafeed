@@ -52,6 +52,8 @@ func TestGenerateTestVectorWithInvalidMessages(t *testing.T) {
 	t.Run("invalid signature marker", invalidSignatureMarkers(&tv.Cases))
 	t.Run("broken signature (bits flipped)", brokenSignature(&tv.Cases))
 
+	t.Run("bad sequences", badSequence(&tv.Cases))
+
 	// make sure each entry is valid bencode data at least
 	for ci, c := range tv.Cases {
 		for ei, e := range c.Entries {
@@ -539,6 +541,70 @@ func brokenSignature(cases *[]vectors.BadCase) func(t *testing.T) {
 		entry.EncodedData = encoded
 
 		bc.Entries = append(bc.Entries, entry)
+
+		// add the case to the vector file
+		*cases = append(*cases, bc)
+	}
+}
+
+func badSequence(cases *[]vectors.BadCase) func(t *testing.T) {
+	return func(t *testing.T) {
+		r := require.New(t)
+
+		var bc vectors.BadCase
+		bc.Description = "3.2: 2nd message has wrong previous"
+
+		// create a a keypair for an invalid formatted author
+		seed := bytes.Repeat([]byte("sec4"), 8)
+		bc.Metadata = append(bc.Metadata,
+			vectors.HexMetadata{" KeyPair Seed", seed},
+		)
+
+		author, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+		r.NoError(err)
+
+		// create encoder for meta-feed entries
+		enc := metafeed.NewEncoder(author.Secret())
+
+		// fake timestamp
+		enc.WithNowTimestamps(true)
+		zeroTime := time.Unix(0, 0)
+		metafeed.SetNow(func() time.Time {
+			return zeroTime
+		})
+
+		// zero previous for the first entry
+		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+		r.NoError(err)
+
+		// the content is not important for this case
+		exMsg := map[string]interface{}{"type": "test", "i": 1}
+
+		signedMsg, msg1key, err := enc.Encode(1, zeroPrevious, exMsg)
+		r.NoError(err)
+
+		var entry1 vectors.EntryBad
+		entry1.Reason = "okay genesis msg"
+		entry1.Invalid = false
+
+		entry1.EncodedData, err = signedMsg.MarshalBencode()
+		r.NoError(err)
+
+		bc.Entries = append(bc.Entries, entry1)
+
+		// now create the offending 2nd msg
+		exMsg["i"] = 2
+		signedMsg2, _, err := enc.Encode(3, msg1key, exMsg)
+		r.NoError(err)
+
+		var entry2 vectors.EntryBad
+		entry2.Reason = "wrong sequence"
+		entry2.Invalid = true
+
+		entry2.EncodedData, err = signedMsg2.MarshalBencode()
+		r.NoError(err)
+
+		bc.Entries = append(bc.Entries, entry2)
 
 		// add the case to the vector file
 		*cases = append(*cases, bc)
