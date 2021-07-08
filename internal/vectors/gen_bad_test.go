@@ -5,17 +5,20 @@ package vectors_test
 import (
 	"bytes"
 	"crypto/ed25519"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/zeebo/bencode"
+
 	"github.com/ssb-ngi-pointer/go-metafeed"
 	"github.com/ssb-ngi-pointer/go-metafeed/internal/sign"
 	"github.com/ssb-ngi-pointer/go-metafeed/internal/vectors"
 	"github.com/ssb-ngi-pointer/go-metafeed/metakeys"
-	"github.com/stretchr/testify/require"
-	"github.com/zeebo/bencode"
 	refs "go.mindeco.de/ssb-refs"
 )
 
@@ -48,6 +51,17 @@ func TestGenerateTestVectorWithInvalidMessages(t *testing.T) {
 
 	t.Run("invalid signature marker", invalidSignatureMarkers(&tv.Cases))
 	t.Run("broken signature (bits flipped)", brokenSignature(&tv.Cases))
+
+	// make sure each entry is valid bencode data at least
+	for ci, c := range tv.Cases {
+		for ei, e := range c.Entries {
+			if !assertValidBencode(t, e.EncodedData) {
+				t.Logf("invalid bencode data in case %d - entry %d: %s", ci, ei, e.Reason)
+				t.Logf("\n%s", hex.Dump(e.EncodedData))
+				t.Log(hex.EncodeToString(e.EncodedData))
+			}
+		}
+	}
 
 	// finally, create the test vector file
 	vectorFile, err := os.OpenFile("../../testvector-metafeed-bad.json", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
@@ -160,9 +174,18 @@ func badAuthorLength(cases *[]vectors.BadCase) func(t *testing.T) {
 		}
 
 		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+			// decode to splice of the length
+			var data []byte
+			err := bencode.DecodeBytes(msgFields[0], &data)
+			r.NoError(err)
+
 			// add a few bytes to the public key
 			more := bytes.Repeat([]byte{0xff}, 16)
-			msgFields[0] = append(msgFields[0], more...)
+			data = append(data, more...)
+
+			// rencode to create the right length
+			msgFields[0], err = bencode.EncodeBytes(data)
+			r.NoError(err)
 		})
 
 		entry.EncodedData = resigned
@@ -276,9 +299,19 @@ func badPreviousLength(cases *[]vectors.BadCase) func(t *testing.T) {
 		}
 
 		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
-			// set TFK type from 1 to 255
+			// decode to splice of the length
+			var data []byte
+			err := bencode.DecodeBytes(msgFields[2], &data)
+			r.NoError(err)
+
+			// add a few bytes to the previous msg hash
 			more := bytes.Repeat([]byte{0xff}, 16)
-			msgFields[2] = append(msgFields[2], more...)
+			data = append(data, more...)
+
+			// rencode to create the right length
+			msgFields[2], err = bencode.EncodeBytes(data)
+			r.NoError(err)
+
 		})
 
 		entry.EncodedData = resigned
@@ -566,11 +599,20 @@ func fiddleWithMessage(t *testing.T, input *metafeed.Message, key ed25519.Privat
 	reencoded, err := bencode.EncodeBytes(msgFields)
 	r.NoError(err)
 
-	signedArr[0] = reencoded
-	signedArr[1] = sign.Create(reencoded, key, nil)
+	var changedData = []interface{}{
+		bencode.RawMessage(reencoded),
+		sign.Create(reencoded, key, nil),
+	}
 
-	resigned, err := bencode.EncodeBytes(signedArr)
+	resigned, err := bencode.EncodeBytes(changedData)
 	r.NoError(err)
 
 	return resigned
+}
+
+func assertValidBencode(t *testing.T, data []byte) bool {
+	a := assert.New(t)
+	var v interface{}
+	err := bencode.DecodeBytes(data, &v)
+	return a.NoError(err)
 }
