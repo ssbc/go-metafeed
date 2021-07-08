@@ -66,9 +66,6 @@ type EntryBad struct {
 
 	// if invalid, why the data is bad
 	Reason string
-
-	// If we want to clearify some extra fields
-	MessageFields map[string]interface{} `json:",omitempty"`
 }
 
 // utils for test vector encoding

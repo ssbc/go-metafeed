@@ -111,9 +111,6 @@ func badAuthorType(cases *[]vectors.BadCase) func(t *testing.T) {
 		var entry vectors.EntryBad
 		entry.Reason = "Bad Author TFK Type"
 		entry.Invalid = true
-		entry.MessageFields = map[string]interface{}{
-			"Sequence": 1,
-		}
 
 		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
 			// set TFK type from 0 to 255
@@ -169,9 +166,6 @@ func badAuthorLength(cases *[]vectors.BadCase) func(t *testing.T) {
 		var entry vectors.EntryBad
 		entry.Reason = "Bad Author TFK Length"
 		entry.Invalid = true
-		entry.MessageFields = map[string]interface{}{
-			"Sequence": 1,
-		}
 
 		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
 			// decode to splice of the length
@@ -236,9 +230,6 @@ func badPreviousType(cases *[]vectors.BadCase) func(t *testing.T) {
 		var entry vectors.EntryBad
 		entry.Reason = "bad previous type"
 		entry.Invalid = true
-		entry.MessageFields = map[string]interface{}{
-			"Sequence": 1,
-		}
 
 		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
 			// set TFK type from 1 to 255
@@ -294,9 +285,6 @@ func badPreviousLength(cases *[]vectors.BadCase) func(t *testing.T) {
 		var entry vectors.EntryBad
 		entry.Reason = "bad previous length"
 		entry.Invalid = true
-		entry.MessageFields = map[string]interface{}{
-			"Sequence": 1,
-		}
 
 		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
 			// decode to splice of the length
@@ -362,9 +350,6 @@ func badPreviousNonZero(cases *[]vectors.BadCase) func(t *testing.T) {
 		var entry vectors.EntryBad
 		entry.Reason = "bad previous length"
 		entry.Invalid = true
-		entry.MessageFields = map[string]interface{}{
-			"Sequence": 1,
-		}
 
 		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
 			// overwrite zero bytes with ff's
@@ -420,11 +405,6 @@ func badPreviousInvalid(cases *[]vectors.BadCase) func(t *testing.T) {
 		var entry1 vectors.EntryBad
 		entry1.Reason = "okay genesis msg"
 		entry1.Invalid = false
-		entry1.MessageFields = map[string]interface{}{
-			"Sequence": 1,
-			"Author":   author.ID().Ref(),
-			"Key":      msg1key.Ref(),
-		}
 
 		entry1.EncodedData, err = signedMsg.MarshalBencode()
 		r.NoError(err)
@@ -439,10 +419,6 @@ func badPreviousInvalid(cases *[]vectors.BadCase) func(t *testing.T) {
 		var entry2 vectors.EntryBad
 		entry2.Reason = "wrong previous"
 		entry2.Invalid = true
-		entry2.MessageFields = map[string]interface{}{
-			"Sequence": 2,
-			"Author":   author.ID().Ref(),
-		}
 
 		entry2.EncodedData = fiddleWithMessage(t, signedMsg2, author.PrivateKey, func(msgFields []bencode.RawMessage) {
 			// overwrite previous with ff's
@@ -496,9 +472,6 @@ func invalidSignatureMarkers(cases *[]vectors.BadCase) func(t *testing.T) {
 		var entry vectors.EntryBad
 		entry.Reason = "invalid signature"
 		entry.Invalid = true
-		entry.MessageFields = map[string]interface{}{
-			"Sequence": 1,
-		}
 
 		// break the signature
 		copy(signedMsg.Signature[:2], []byte{0xac, 0xab})
@@ -554,9 +527,6 @@ func brokenSignature(cases *[]vectors.BadCase) func(t *testing.T) {
 		var entry vectors.EntryBad
 		entry.Reason = "invalid signature"
 		entry.Invalid = true
-		entry.MessageFields = map[string]interface{}{
-			"Sequence": 1,
-		}
 
 		// break the signature
 		for i, s := range signedMsg.Signature[2:] {
