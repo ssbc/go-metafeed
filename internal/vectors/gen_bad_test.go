@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -53,6 +54,7 @@ func TestGenerateTestVectorWithInvalidMessages(t *testing.T) {
 	t.Run("broken signature (bits flipped)", brokenSignature(&tv.Cases))
 
 	t.Run("bad sequences", badSequence(&tv.Cases))
+	t.Run("too much content", tooMuchContent(&tv.Cases))
 
 	// make sure each entry is valid bencode data at least
 	for ci, c := range tv.Cases {
@@ -605,6 +607,72 @@ func badSequence(cases *[]vectors.BadCase) func(t *testing.T) {
 		r.NoError(err)
 
 		bc.Entries = append(bc.Entries, entry2)
+
+		// add the case to the vector file
+		*cases = append(*cases, bc)
+	}
+}
+
+func tooMuchContent(cases *[]vectors.BadCase) func(t *testing.T) {
+	return func(t *testing.T) {
+		r := require.New(t)
+
+		var bc vectors.BadCase
+		bc.Description = "6.1: too long content (just one message)"
+
+		// create a a keypair for an invalid formatted author
+		seed := bytes.Repeat([]byte("sec7"), 8)
+		bc.Metadata = append(bc.Metadata,
+			vectors.HexMetadata{" KeyPair Seed", seed},
+		)
+
+		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+		r.NoError(err)
+
+		// create encoder for meta-feed entries
+		enc := metafeed.NewEncoder(badAuthor.Secret())
+
+		// fake timestamp
+		enc.WithNowTimestamps(true)
+		zeroTime := time.Unix(0, 0)
+		metafeed.SetNow(func() time.Time {
+			return zeroTime
+		})
+
+		// zero previous for the first entry
+		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+		r.NoError(err)
+
+		// the content is not important for this case
+		exMsg := map[string]interface{}{"type": "test"}
+
+		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+		r.NoError(err)
+
+		var entry vectors.EntryBad
+		entry.Reason = "invalid signature"
+		entry.Invalid = true
+
+		origMessage, err := signedMsg.MarshalBinary()
+		r.NoError(err)
+		origSize := len(origMessage)
+
+		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+			// decode the data
+			var data map[string]interface{}
+			err := bencode.DecodeBytes(msgFields[4], &data)
+			r.NoError(err)
+
+			// add one byte too much
+			data["moar"] = strings.Repeat("A", 8*1024-origSize+1)
+
+			// rencode the object
+			msgFields[4], err = bencode.EncodeBytes(data)
+			r.NoError(err)
+		})
+		r.Greater(len(entry.EncodedData), 8*1024)
+
+		bc.Entries = append(bc.Entries, entry)
 
 		// add the case to the vector file
 		*cases = append(*cases, bc)
