@@ -108,10 +108,13 @@ func (p *Payload) UnmarshalBencode(input []byte) error {
 	if err != nil {
 		return fmt.Errorf("metafeed/payload: failed to decode author tfk: %w", err)
 	}
-
 	p.Author, err = author.Feed()
 	if err != nil {
 		return fmt.Errorf("metafeed/payload: invalid author tfk: %w", err)
+	}
+
+	if p.Author.Algo() != refs.RefAlgoFeedBendyButt {
+		return fmt.Errorf("metafeed/payload: invalid author type: %w", err)
 	}
 
 	// elem 2: sequence
