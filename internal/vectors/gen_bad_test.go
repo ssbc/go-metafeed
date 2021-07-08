@@ -26,8 +26,8 @@ import (
 // TODO: refactor a lot of this stuff into badSession creator to shoten the code
 
 /*
-1. invalid author formatting (type, length, ...)
-2. invalid previous formatting (type, length, ...)
+1. invalid author formatting (type, format, length)
+2. invalid previous formatting (type, format, length)
 3. wrong previous hashes
 4. broken signature(s)
 5. wrong sequence numbers
@@ -42,9 +42,11 @@ func TestGenerateTestVectorWithInvalidMessages(t *testing.T) {
 	tv.Description = "Some metafeed messages with invalid content (to help with validation)"
 
 	t.Run("bad author type", badAuthorType(&tv.Cases))
+	t.Run("bad author format", badAuthorFormat(&tv.Cases))
 	t.Run("bad author length", badAuthorLength(&tv.Cases))
 
 	t.Run("bad previous type", badPreviousType(&tv.Cases))
+	t.Run("bad previous format", badPreviousFormat(&tv.Cases))
 	t.Run("bad previous length", badPreviousLength(&tv.Cases))
 
 	t.Run("non zero previous on first message", badPreviousNonZero(&tv.Cases))
@@ -131,12 +133,67 @@ func badAuthorType(cases *[]vectors.BadCase) func(t *testing.T) {
 	}
 }
 
+func badAuthorFormat(cases *[]vectors.BadCase) func(t *testing.T) {
+	return func(t *testing.T) {
+		r := require.New(t)
+
+		var bc vectors.BadCase
+		bc.Description = "1.2: Author with bad TFK format (just one message)"
+
+		// create a a keypair for an invalid formatted author
+		seed := bytes.Repeat([]byte("sec0"), 8)
+		bc.Metadata = append(bc.Metadata,
+			vectors.HexMetadata{" KeyPair Seed", seed},
+		)
+
+		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+		r.NoError(err)
+
+		// create encoder for meta-feed entries
+		enc := metafeed.NewEncoder(badAuthor.Secret())
+
+		// fake timestamp
+		enc.WithNowTimestamps(true)
+		zeroTime := time.Unix(0, 0)
+		metafeed.SetNow(func() time.Time {
+			return zeroTime
+		})
+
+		// zero previous for the first entry
+		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+		r.NoError(err)
+
+		// the content is not important for this case
+		exMsg := map[string]interface{}{"type": "test"}
+
+		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+		r.NoError(err)
+
+		var entry vectors.EntryBad
+		entry.Reason = "Bad Author TFK format"
+		entry.Invalid = true
+
+		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+			// set TFK format to 255
+			r.Equal(uint8(3), msgFields[0][4])
+			msgFields[0][4] = 0xff
+		})
+
+		entry.EncodedData = resigned
+
+		bc.Entries = append(bc.Entries, entry)
+
+		// add the case to the vector file
+		*cases = append(*cases, bc)
+	}
+}
+
 func badAuthorLength(cases *[]vectors.BadCase) func(t *testing.T) {
 	return func(t *testing.T) {
 		r := require.New(t)
 
 		var bc vectors.BadCase
-		bc.Description = "1.2: Author with bad TFK formatting (just one message)"
+		bc.Description = "1.3: Author with bad TFK formatting (just one message)"
 
 		// create a a keypair for an invalid formatted author
 		seed := bytes.Repeat([]byte("sec1"), 8)
@@ -250,12 +307,67 @@ func badPreviousType(cases *[]vectors.BadCase) func(t *testing.T) {
 	}
 }
 
+func badPreviousFormat(cases *[]vectors.BadCase) func(t *testing.T) {
+	return func(t *testing.T) {
+		r := require.New(t)
+
+		var bc vectors.BadCase
+		bc.Description = "2.2: previous with bad TFK format (just one message)"
+
+		// create a a keypair for an invalid formatted author
+		seed := bytes.Repeat([]byte("sec2"), 8)
+		bc.Metadata = append(bc.Metadata,
+			vectors.HexMetadata{" KeyPair Seed", seed},
+		)
+
+		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+		r.NoError(err)
+
+		// create encoder for meta-feed entries
+		enc := metafeed.NewEncoder(badAuthor.Secret())
+
+		// fake timestamp
+		enc.WithNowTimestamps(true)
+		zeroTime := time.Unix(0, 0)
+		metafeed.SetNow(func() time.Time {
+			return zeroTime
+		})
+
+		// zero previous for the first entry
+		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+		r.NoError(err)
+
+		// the content is not important for this case
+		exMsg := map[string]interface{}{"type": "test", "i": 1}
+
+		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+		r.NoError(err)
+
+		var entry vectors.EntryBad
+		entry.Reason = "bad previous format"
+		entry.Invalid = true
+
+		resigned := fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+			// set TFK format to 255
+			r.Equal(uint8(4), msgFields[2][4])
+			msgFields[2][4] = 0xff
+		})
+
+		entry.EncodedData = resigned
+
+		bc.Entries = append(bc.Entries, entry)
+
+		// add the case to the vector file
+		*cases = append(*cases, bc)
+	}
+}
+
 func badPreviousLength(cases *[]vectors.BadCase) func(t *testing.T) {
 	return func(t *testing.T) {
 		r := require.New(t)
 
 		var bc vectors.BadCase
-		bc.Description = "2.2: previous with bad TFK length (just one message)"
+		bc.Description = "2.3: previous with bad TFK length (just one message)"
 
 		// create a a keypair for an invalid formatted author
 		seed := bytes.Repeat([]byte("sec3"), 8)
