@@ -8,6 +8,7 @@ import (
 	"encoding"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -44,6 +45,10 @@ func (msg *Message) MarshalBencode() ([]byte, error) {
 
 // UnmarshalBencode expects a benocded array of [content, signature]
 func (msg *Message) UnmarshalBencode(input []byte) error {
+	if len(input) > maxMessageSize {
+		return errors.New("metafeed: message too big")
+	}
+
 	var raw []bencode.RawMessage
 
 	err := bencode.NewDecoder(bytes.NewReader(input)).Decode(&raw)
@@ -124,6 +129,7 @@ var _ refs.Message = (*Message)(nil)
 // Key returns the hash reference of the message
 func (msg *Message) Key() refs.MessageRef {
 
+	// TODO: do this lazy and cache the result
 	bytes, err := msg.MarshalBencode()
 	if err != nil {
 		panic(err)
@@ -187,7 +193,6 @@ func (msg *Message) Claimed() time.Time {
 
 // ContentBytes returns the pure bencoded content portion of the message
 func (msg *Message) ContentBytes() []byte {
-
 	var arr []bencode.RawMessage
 	err := bencode.NewDecoder(bytes.NewReader(msg.Data)).Decode(&arr)
 	if err != nil {
