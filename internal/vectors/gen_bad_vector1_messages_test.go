@@ -34,23 +34,14 @@ func init() {
 	}
 }
 
-// TODO: refactor a lot of this stuff into badSession creator to shoten the code
-
-/*
-1. invalid author formatting (type, format, length)
-2. invalid previous formatting (type, format, length)
-3. wrong previous hashes
-4. broken signature(s)
-5. wrong sequence numbers
-6. too long messages
-7. given that this format is supposed to be just for _metafeed_ managment, broken content
-*/
-func TestGenerateTestVectorWithInvalidMessages(t *testing.T) {
+// This generates the "bad messages" vector file.
+// See https://github.com/ssb-ngi-pointer/bendy-butt-spec/#validation for more
+func TestGenerateTestVectorAWithInvalidMessages(t *testing.T) {
 	r := require.New(t)
 
 	// the vectors for other implementations
 	var tv vectors.Bad
-	tv.Description = "Some metafeed messages with invalid content (to help with validation)"
+	tv.Description = "Some invalid message metafeed"
 
 	badCase := []struct {
 		descr   string
@@ -58,7 +49,7 @@ func TestGenerateTestVectorWithInvalidMessages(t *testing.T) {
 	}{
 		{"1.1: Author with bad TFK type", badAuthorType},
 		{"1.2: Author with bad TFK format", badAuthorFormat},
-		{"1.3: Author with bad TFK formatting", badAuthorLength},
+		{"1.3: Author with bad TFK length", badAuthorLength},
 
 		{"2.1: previous with bad TFK type", badPreviousType},
 		{"2.2: previous with bad TFK format", badPreviousFormat},
@@ -72,7 +63,7 @@ func TestGenerateTestVectorWithInvalidMessages(t *testing.T) {
 
 		{"5.1: two messages with bad sequences (1 and 3)", badSequence},
 
-		{"6.1: too long content (just one message)", tooMuchContent},
+		{"6.1: message too long", tooLongMessage},
 	}
 
 	for _, c := range badCase {
@@ -93,11 +84,12 @@ func TestGenerateTestVectorWithInvalidMessages(t *testing.T) {
 	}
 
 	// finally, create the test vector file
-	vectorFile, err := os.OpenFile("../../testvector-metafeed-bad.json", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	vectorFile, err := os.OpenFile("../../testvector-metafeed-bad-messages.json", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	r.NoError(err)
 
 	err = json.NewEncoder(vectorFile).Encode(tv)
 	r.NoError(err)
+
 	r.NoError(vectorFile.Close())
 }
 
@@ -466,7 +458,7 @@ func badSequence(t *testing.T) vectors.BadCase {
 	return bc
 }
 
-func tooMuchContent(t *testing.T) vectors.BadCase {
+func tooLongMessage(t *testing.T) vectors.BadCase {
 	r := require.New(t)
 
 	var bc vectors.BadCase

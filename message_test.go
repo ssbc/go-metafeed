@@ -10,12 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBadVector(t *testing.T) {
+func TestBadMessagesVector(t *testing.T) {
 	r := require.New(t)
 
 	var tv vectors.Bad
 
-	f, err := os.Open("testvector-metafeed-bad.json")
+	f, err := os.Open("testvector-metafeed-bad-messages.json")
 	r.NoError(err)
 
 	err = json.NewDecoder(f).Decode(&tv)
