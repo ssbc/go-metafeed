@@ -41,22 +41,34 @@ func TestGenerateTestVectorWithInvalidMessages(t *testing.T) {
 	var tv vectors.Bad
 	tv.Description = "Some metafeed messages with invalid content (to help with validation)"
 
-	t.Run("bad author type", badAuthorType(&tv.Cases))
-	t.Run("bad author format", badAuthorFormat(&tv.Cases))
-	t.Run("bad author length", badAuthorLength(&tv.Cases))
+	badCase := []struct {
+		descr   string
+		genCase func(t *testing.T) vectors.BadCase
+	}{
+		{"1.1: Author with bad TFK type", badAuthorType},
+		{"1.2: Author with bad TFK format", badAuthorFormat},
+		{"1.3: Author with bad TFK formatting", badAuthorLength},
 
-	t.Run("bad previous type", badPreviousType(&tv.Cases))
-	t.Run("bad previous format", badPreviousFormat(&tv.Cases))
-	t.Run("bad previous length", badPreviousLength(&tv.Cases))
+		{"2.1: previous with bad TFK type", badPreviousType},
+		{"2.2: previous with bad TFK format", badPreviousFormat},
+		{"2.3: previous with bad TFK length", badPreviousLength},
 
-	t.Run("non zero previous on first message", badPreviousNonZero(&tv.Cases))
-	t.Run("wrong previous on 2nd message", badPreviousInvalid(&tv.Cases))
+		{"3.1: non-zero previous on first message", badPreviousNonZero},
+		{"3.2: 2nd message has wrong previous", badPreviousInvalid},
 
-	t.Run("invalid signature marker", invalidSignatureMarkers(&tv.Cases))
-	t.Run("broken signature (bits flipped)", brokenSignature(&tv.Cases))
+		{"4.1: invalid signature marker, first two bytes", invalidSignatureMarkers},
+		{"4.2: broken signature (bits flipped)", brokenSignature},
 
-	t.Run("bad sequences", badSequence(&tv.Cases))
-	t.Run("too much content", tooMuchContent(&tv.Cases))
+		{"5.1: two messages with bad sequences (1 and 3)", badSequence},
+
+		{"6.1: too long content (just one message)", tooMuchContent},
+	}
+
+	for _, c := range badCase {
+		bc := c.genCase(t)
+		bc.Description = c.descr
+		tv.Cases = append(tv.Cases, bc)
+	}
 
 	// make sure each entry is valid bencode data at least
 	for ci, c := range tv.Cases {
@@ -78,703 +90,651 @@ func TestGenerateTestVectorWithInvalidMessages(t *testing.T) {
 	r.NoError(vectorFile.Close())
 }
 
-func badAuthorType(cases *[]vectors.BadCase) func(t *testing.T) {
-	return func(t *testing.T) {
-		r := require.New(t)
+func badAuthorType(t *testing.T) vectors.BadCase {
+	var bc vectors.BadCase
+	r := require.New(t)
 
-		var bc vectors.BadCase
-		bc.Description = "1.1: Author with bad TFK type (just one message)"
+	// create a a keypair for an invalid formatted author
+	seed := bytes.Repeat([]byte("sec0"), 8)
+	bc.Metadata = append(bc.Metadata,
+		vectors.HexMetadata{" KeyPair Seed", seed},
+	)
 
-		// create a a keypair for an invalid formatted author
-		seed := bytes.Repeat([]byte("sec0"), 8)
-		bc.Metadata = append(bc.Metadata,
-			vectors.HexMetadata{" KeyPair Seed", seed},
-		)
+	badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	r.NoError(err)
 
-		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
-		r.NoError(err)
+	// create encoder for meta-feed entries
+	enc := metafeed.NewEncoder(badAuthor.Secret())
 
-		// create encoder for meta-feed entries
-		enc := metafeed.NewEncoder(badAuthor.Secret())
+	// fake timestamp
+	enc.WithNowTimestamps(true)
+	zeroTime := time.Unix(0, 0)
+	metafeed.SetNow(func() time.Time {
+		return zeroTime
+	})
 
-		// fake timestamp
-		enc.WithNowTimestamps(true)
-		zeroTime := time.Unix(0, 0)
-		metafeed.SetNow(func() time.Time {
-			return zeroTime
-		})
+	// zero previous for the first entry
+	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+	r.NoError(err)
 
-		// zero previous for the first entry
-		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
-		r.NoError(err)
+	// the content is not important for this case
+	exMsg := map[string]interface{}{"type": "test"}
 
-		// the content is not important for this case
-		exMsg := map[string]interface{}{"type": "test"}
+	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+	r.NoError(err)
 
-		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
-		r.NoError(err)
+	var entry vectors.EntryBad
+	entry.Reason = "Bad Author TFK Type"
+	entry.Invalid = true
 
-		var entry vectors.EntryBad
-		entry.Reason = "Bad Author TFK Type"
-		entry.Invalid = true
+	entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		// set TFK type from 0 to 255
+		r.Equal(uint8(0), msgFields[0][3])
+		msgFields[0][3] = 0xff
+	})
 
-		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
-			// set TFK type from 0 to 255
-			r.Equal(uint8(0), msgFields[0][3])
-			msgFields[0][3] = 0xff
-		})
-
-		bc.Entries = append(bc.Entries, entry)
-
-		// add the case to the vector file
-		*cases = append(*cases, bc)
-	}
+	bc.Entries = append(bc.Entries, entry)
+	return bc
 }
 
-func badAuthorFormat(cases *[]vectors.BadCase) func(t *testing.T) {
-	return func(t *testing.T) {
-		r := require.New(t)
+func badAuthorFormat(t *testing.T) vectors.BadCase {
+	var bc vectors.BadCase
+	r := require.New(t)
 
-		var bc vectors.BadCase
-		bc.Description = "1.2: Author with bad TFK format (just one message)"
+	// create a a keypair for an invalid formatted author
+	seed := bytes.Repeat([]byte("sec0"), 8)
+	bc.Metadata = append(bc.Metadata,
+		vectors.HexMetadata{" KeyPair Seed", seed},
+	)
 
-		// create a a keypair for an invalid formatted author
-		seed := bytes.Repeat([]byte("sec0"), 8)
-		bc.Metadata = append(bc.Metadata,
-			vectors.HexMetadata{" KeyPair Seed", seed},
-		)
+	badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	r.NoError(err)
 
-		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
-		r.NoError(err)
+	// create encoder for meta-feed entries
+	enc := metafeed.NewEncoder(badAuthor.Secret())
 
-		// create encoder for meta-feed entries
-		enc := metafeed.NewEncoder(badAuthor.Secret())
+	// fake timestamp
+	enc.WithNowTimestamps(true)
+	zeroTime := time.Unix(0, 0)
+	metafeed.SetNow(func() time.Time {
+		return zeroTime
+	})
 
-		// fake timestamp
-		enc.WithNowTimestamps(true)
-		zeroTime := time.Unix(0, 0)
-		metafeed.SetNow(func() time.Time {
-			return zeroTime
-		})
+	// zero previous for the first entry
+	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+	r.NoError(err)
 
-		// zero previous for the first entry
-		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
-		r.NoError(err)
+	// the content is not important for this case
+	exMsg := map[string]interface{}{"type": "test"}
 
-		// the content is not important for this case
-		exMsg := map[string]interface{}{"type": "test"}
+	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+	r.NoError(err)
 
-		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
-		r.NoError(err)
+	var entry vectors.EntryBad
+	entry.Reason = "Bad Author TFK format"
+	entry.Invalid = true
 
-		var entry vectors.EntryBad
-		entry.Reason = "Bad Author TFK format"
-		entry.Invalid = true
+	entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		// set TFK format to 255
+		r.Equal(uint8(3), msgFields[0][4])
+		msgFields[0][4] = 0xff
+	})
 
-		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
-			// set TFK format to 255
-			r.Equal(uint8(3), msgFields[0][4])
-			msgFields[0][4] = 0xff
-		})
+	bc.Entries = append(bc.Entries, entry)
 
-		bc.Entries = append(bc.Entries, entry)
-
-		// add the case to the vector file
-		*cases = append(*cases, bc)
-	}
+	return bc
 }
 
-func badAuthorLength(cases *[]vectors.BadCase) func(t *testing.T) {
-	return func(t *testing.T) {
-		r := require.New(t)
+func badAuthorLength(t *testing.T) vectors.BadCase {
+	r := require.New(t)
 
-		var bc vectors.BadCase
-		bc.Description = "1.3: Author with bad TFK formatting (just one message)"
+	var bc vectors.BadCase
 
-		// create a a keypair for an invalid formatted author
-		seed := bytes.Repeat([]byte("sec1"), 8)
-		bc.Metadata = append(bc.Metadata,
-			vectors.HexMetadata{" KeyPair Seed", seed},
-		)
+	// create a a keypair for an invalid formatted author
+	seed := bytes.Repeat([]byte("sec1"), 8)
+	bc.Metadata = append(bc.Metadata,
+		vectors.HexMetadata{" KeyPair Seed", seed},
+	)
 
-		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	r.NoError(err)
+
+	// create encoder for meta-feed entries
+	enc := metafeed.NewEncoder(badAuthor.Secret())
+
+	// fake timestamp
+	enc.WithNowTimestamps(true)
+	zeroTime := time.Unix(0, 0)
+	metafeed.SetNow(func() time.Time {
+		return zeroTime
+	})
+
+	// zero previous for the first entry
+	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+	r.NoError(err)
+
+	// the content is not important for this case
+	exMsg := map[string]interface{}{"type": "test"}
+
+	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+	r.NoError(err)
+
+	var entry vectors.EntryBad
+	entry.Reason = "Bad Author TFK Length"
+	entry.Invalid = true
+
+	entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		// decode to splice of the length
+		var data []byte
+		err := bencode.DecodeBytes(msgFields[0], &data)
 		r.NoError(err)
 
-		// create encoder for meta-feed entries
-		enc := metafeed.NewEncoder(badAuthor.Secret())
+		// add a few bytes to the public key
+		more := bytes.Repeat([]byte{0xff}, 16)
+		data = append(data, more...)
 
-		// fake timestamp
-		enc.WithNowTimestamps(true)
-		zeroTime := time.Unix(0, 0)
-		metafeed.SetNow(func() time.Time {
-			return zeroTime
-		})
-
-		// zero previous for the first entry
-		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+		// rencode to create the right length
+		msgFields[0], err = bencode.EncodeBytes(data)
 		r.NoError(err)
+	})
 
-		// the content is not important for this case
-		exMsg := map[string]interface{}{"type": "test"}
+	bc.Entries = append(bc.Entries, entry)
 
-		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
-		r.NoError(err)
-
-		var entry vectors.EntryBad
-		entry.Reason = "Bad Author TFK Length"
-		entry.Invalid = true
-
-		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
-			// decode to splice of the length
-			var data []byte
-			err := bencode.DecodeBytes(msgFields[0], &data)
-			r.NoError(err)
-
-			// add a few bytes to the public key
-			more := bytes.Repeat([]byte{0xff}, 16)
-			data = append(data, more...)
-
-			// rencode to create the right length
-			msgFields[0], err = bencode.EncodeBytes(data)
-			r.NoError(err)
-		})
-
-		bc.Entries = append(bc.Entries, entry)
-
-		// add the case to the vector file
-		*cases = append(*cases, bc)
-	}
+	return bc
 }
 
-func badPreviousType(cases *[]vectors.BadCase) func(t *testing.T) {
-	return func(t *testing.T) {
-		r := require.New(t)
+func badPreviousType(t *testing.T) vectors.BadCase {
+	r := require.New(t)
 
-		var bc vectors.BadCase
-		bc.Description = "2.1: previous with bad TFK type (just one message)"
+	var bc vectors.BadCase
 
-		// create a a keypair for an invalid formatted author
-		seed := bytes.Repeat([]byte("sec2"), 8)
-		bc.Metadata = append(bc.Metadata,
-			vectors.HexMetadata{" KeyPair Seed", seed},
-		)
+	// create a a keypair for an invalid formatted author
+	seed := bytes.Repeat([]byte("sec2"), 8)
+	bc.Metadata = append(bc.Metadata,
+		vectors.HexMetadata{" KeyPair Seed", seed},
+	)
 
-		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
-		r.NoError(err)
+	badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	r.NoError(err)
 
-		// create encoder for meta-feed entries
-		enc := metafeed.NewEncoder(badAuthor.Secret())
+	// create encoder for meta-feed entries
+	enc := metafeed.NewEncoder(badAuthor.Secret())
 
-		// fake timestamp
-		enc.WithNowTimestamps(true)
-		zeroTime := time.Unix(0, 0)
-		metafeed.SetNow(func() time.Time {
-			return zeroTime
-		})
+	// fake timestamp
+	enc.WithNowTimestamps(true)
+	zeroTime := time.Unix(0, 0)
+	metafeed.SetNow(func() time.Time {
+		return zeroTime
+	})
 
-		// zero previous for the first entry
-		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
-		r.NoError(err)
+	// zero previous for the first entry
+	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+	r.NoError(err)
 
-		// the content is not important for this case
-		exMsg := map[string]interface{}{"type": "test", "i": 1}
+	// the content is not important for this case
+	exMsg := map[string]interface{}{"type": "test", "i": 1}
 
-		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
-		r.NoError(err)
+	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+	r.NoError(err)
 
-		var entry vectors.EntryBad
-		entry.Reason = "bad previous type"
-		entry.Invalid = true
+	var entry vectors.EntryBad
+	entry.Reason = "bad previous type"
+	entry.Invalid = true
 
-		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
-			// set TFK type from 1 to 255
-			r.Equal(uint8(1), msgFields[2][3])
-			msgFields[2][3] = 0xff
-		})
+	entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		// set TFK type from 1 to 255
+		r.Equal(uint8(1), msgFields[2][3])
+		msgFields[2][3] = 0xff
+	})
 
-		bc.Entries = append(bc.Entries, entry)
-
-		// add the case to the vector file
-		*cases = append(*cases, bc)
-	}
+	bc.Entries = append(bc.Entries, entry)
+	return bc
 }
 
-func badPreviousFormat(cases *[]vectors.BadCase) func(t *testing.T) {
-	return func(t *testing.T) {
-		r := require.New(t)
+func badPreviousFormat(t *testing.T) vectors.BadCase {
+	r := require.New(t)
 
-		var bc vectors.BadCase
-		bc.Description = "2.2: previous with bad TFK format (just one message)"
+	var bc vectors.BadCase
 
-		// create a a keypair for an invalid formatted author
-		seed := bytes.Repeat([]byte("sec2"), 8)
-		bc.Metadata = append(bc.Metadata,
-			vectors.HexMetadata{" KeyPair Seed", seed},
-		)
+	// create a a keypair for an invalid formatted author
+	seed := bytes.Repeat([]byte("sec2"), 8)
+	bc.Metadata = append(bc.Metadata,
+		vectors.HexMetadata{" KeyPair Seed", seed},
+	)
 
-		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
-		r.NoError(err)
+	badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	r.NoError(err)
 
-		// create encoder for meta-feed entries
-		enc := metafeed.NewEncoder(badAuthor.Secret())
+	// create encoder for meta-feed entries
+	enc := metafeed.NewEncoder(badAuthor.Secret())
 
-		// fake timestamp
-		enc.WithNowTimestamps(true)
-		zeroTime := time.Unix(0, 0)
-		metafeed.SetNow(func() time.Time {
-			return zeroTime
-		})
+	// fake timestamp
+	enc.WithNowTimestamps(true)
+	zeroTime := time.Unix(0, 0)
+	metafeed.SetNow(func() time.Time {
+		return zeroTime
+	})
 
-		// zero previous for the first entry
-		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
-		r.NoError(err)
+	// zero previous for the first entry
+	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+	r.NoError(err)
 
-		// the content is not important for this case
-		exMsg := map[string]interface{}{"type": "test", "i": 1}
+	// the content is not important for this case
+	exMsg := map[string]interface{}{"type": "test", "i": 1}
 
-		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
-		r.NoError(err)
+	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+	r.NoError(err)
 
-		var entry vectors.EntryBad
-		entry.Reason = "bad previous format"
-		entry.Invalid = true
+	var entry vectors.EntryBad
+	entry.Reason = "bad previous format"
+	entry.Invalid = true
 
-		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
-			// set TFK format to 255
-			r.Equal(uint8(4), msgFields[2][4])
-			msgFields[2][4] = 0xff
-		})
+	entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		// set TFK format to 255
+		r.Equal(uint8(4), msgFields[2][4])
+		msgFields[2][4] = 0xff
+	})
 
-		bc.Entries = append(bc.Entries, entry)
+	bc.Entries = append(bc.Entries, entry)
 
-		// add the case to the vector file
-		*cases = append(*cases, bc)
-	}
+	return bc
 }
 
-func badPreviousLength(cases *[]vectors.BadCase) func(t *testing.T) {
-	return func(t *testing.T) {
-		r := require.New(t)
+func badPreviousLength(t *testing.T) vectors.BadCase {
+	r := require.New(t)
 
-		var bc vectors.BadCase
-		bc.Description = "2.3: previous with bad TFK length (just one message)"
+	var bc vectors.BadCase
 
-		// create a a keypair for an invalid formatted author
-		seed := bytes.Repeat([]byte("sec3"), 8)
-		bc.Metadata = append(bc.Metadata,
-			vectors.HexMetadata{" KeyPair Seed", seed},
-		)
+	// create a a keypair for an invalid formatted author
+	seed := bytes.Repeat([]byte("sec3"), 8)
+	bc.Metadata = append(bc.Metadata,
+		vectors.HexMetadata{" KeyPair Seed", seed},
+	)
 
-		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	r.NoError(err)
+
+	// create encoder for meta-feed entries
+	enc := metafeed.NewEncoder(badAuthor.Secret())
+
+	// fake timestamp
+	enc.WithNowTimestamps(true)
+	zeroTime := time.Unix(0, 0)
+	metafeed.SetNow(func() time.Time {
+		return zeroTime
+	})
+
+	// zero previous for the first entry
+	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+	r.NoError(err)
+
+	// the content is not important for this case
+	exMsg := map[string]interface{}{"type": "test", "name": t.Name()}
+
+	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+	r.NoError(err)
+
+	var entry vectors.EntryBad
+	entry.Reason = "bad previous length"
+	entry.Invalid = true
+
+	entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		// decode to splice of the length
+		var data []byte
+		err := bencode.DecodeBytes(msgFields[2], &data)
 		r.NoError(err)
 
-		// create encoder for meta-feed entries
-		enc := metafeed.NewEncoder(badAuthor.Secret())
+		// add a few bytes to the previous msg hash
+		more := bytes.Repeat([]byte{0xff}, 16)
+		data = append(data, more...)
 
-		// fake timestamp
-		enc.WithNowTimestamps(true)
-		zeroTime := time.Unix(0, 0)
-		metafeed.SetNow(func() time.Time {
-			return zeroTime
-		})
-
-		// zero previous for the first entry
-		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+		// rencode to create the right length
+		msgFields[2], err = bencode.EncodeBytes(data)
 		r.NoError(err)
 
-		// the content is not important for this case
-		exMsg := map[string]interface{}{"type": "test", "name": t.Name()}
+	})
 
-		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
-		r.NoError(err)
+	bc.Entries = append(bc.Entries, entry)
 
-		var entry vectors.EntryBad
-		entry.Reason = "bad previous length"
-		entry.Invalid = true
-
-		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
-			// decode to splice of the length
-			var data []byte
-			err := bencode.DecodeBytes(msgFields[2], &data)
-			r.NoError(err)
-
-			// add a few bytes to the previous msg hash
-			more := bytes.Repeat([]byte{0xff}, 16)
-			data = append(data, more...)
-
-			// rencode to create the right length
-			msgFields[2], err = bencode.EncodeBytes(data)
-			r.NoError(err)
-
-		})
-
-		bc.Entries = append(bc.Entries, entry)
-
-		// add the case to the vector file
-		*cases = append(*cases, bc)
-	}
+	return bc
 }
 
-func badPreviousNonZero(cases *[]vectors.BadCase) func(t *testing.T) {
-	return func(t *testing.T) {
-		r := require.New(t)
+func badPreviousNonZero(t *testing.T) vectors.BadCase {
+	r := require.New(t)
 
-		var bc vectors.BadCase
-		bc.Description = "3.1: non-zero previous on first message (just one message)"
+	var bc vectors.BadCase
 
-		// create a a keypair for an invalid formatted author
-		seed := bytes.Repeat([]byte("sec4"), 8)
-		bc.Metadata = append(bc.Metadata,
-			vectors.HexMetadata{" KeyPair Seed", seed},
-		)
+	// create a a keypair for an invalid formatted author
+	seed := bytes.Repeat([]byte("sec4"), 8)
+	bc.Metadata = append(bc.Metadata,
+		vectors.HexMetadata{" KeyPair Seed", seed},
+	)
 
-		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
-		r.NoError(err)
+	badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	r.NoError(err)
 
-		// create encoder for meta-feed entries
-		enc := metafeed.NewEncoder(badAuthor.Secret())
+	// create encoder for meta-feed entries
+	enc := metafeed.NewEncoder(badAuthor.Secret())
 
-		// fake timestamp
-		enc.WithNowTimestamps(true)
-		zeroTime := time.Unix(0, 0)
-		metafeed.SetNow(func() time.Time {
-			return zeroTime
-		})
+	// fake timestamp
+	enc.WithNowTimestamps(true)
+	zeroTime := time.Unix(0, 0)
+	metafeed.SetNow(func() time.Time {
+		return zeroTime
+	})
 
-		// zero previous for the first entry
-		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
-		r.NoError(err)
+	// zero previous for the first entry
+	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+	r.NoError(err)
 
-		// the content is not important for this case
-		exMsg := map[string]interface{}{"type": "test", "i": 1}
+	// the content is not important for this case
+	exMsg := map[string]interface{}{"type": "test", "i": 1}
 
-		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
-		r.NoError(err)
+	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+	r.NoError(err)
 
-		var entry vectors.EntryBad
-		entry.Reason = "bad non zero first"
-		entry.Invalid = true
+	var entry vectors.EntryBad
+	entry.Reason = "bad non zero first"
+	entry.Invalid = true
 
-		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
-			// overwrite zero bytes with ff's
-			ffs := bytes.Repeat([]byte{0xff}, 32)
-			copy(msgFields[2][5:], ffs)
-		})
+	entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		// overwrite zero bytes with ff's
+		ffs := bytes.Repeat([]byte{0xff}, 32)
+		copy(msgFields[2][5:], ffs)
+	})
 
-		bc.Entries = append(bc.Entries, entry)
+	bc.Entries = append(bc.Entries, entry)
 
-		// add the case to the vector file
-		*cases = append(*cases, bc)
-	}
+	return bc
 }
 
-func badPreviousInvalid(cases *[]vectors.BadCase) func(t *testing.T) {
-	return func(t *testing.T) {
-		r := require.New(t)
+func badPreviousInvalid(t *testing.T) vectors.BadCase {
+	r := require.New(t)
 
-		var bc vectors.BadCase
-		bc.Description = "3.2: 2nd message has wrong previous"
+	var bc vectors.BadCase
 
-		// create a a keypair for an invalid formatted author
-		seed := bytes.Repeat([]byte("sec4"), 8)
-		bc.Metadata = append(bc.Metadata,
-			vectors.HexMetadata{" KeyPair Seed", seed},
-		)
+	// create a a keypair for an invalid formatted author
+	seed := bytes.Repeat([]byte("sec4"), 8)
+	bc.Metadata = append(bc.Metadata,
+		vectors.HexMetadata{" KeyPair Seed", seed},
+	)
 
-		author, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
-		r.NoError(err)
+	author, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	r.NoError(err)
 
-		// create encoder for meta-feed entries
-		enc := metafeed.NewEncoder(author.Secret())
+	// create encoder for meta-feed entries
+	enc := metafeed.NewEncoder(author.Secret())
 
-		// fake timestamp
-		enc.WithNowTimestamps(true)
-		zeroTime := time.Unix(0, 0)
-		metafeed.SetNow(func() time.Time {
-			return zeroTime
-		})
+	// fake timestamp
+	enc.WithNowTimestamps(true)
+	zeroTime := time.Unix(0, 0)
+	metafeed.SetNow(func() time.Time {
+		return zeroTime
+	})
 
-		// zero previous for the first entry
-		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
-		r.NoError(err)
+	// zero previous for the first entry
+	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+	r.NoError(err)
 
-		// the content is not important for this case
-		exMsg := map[string]interface{}{"type": "test", "i": 1}
+	// the content is not important for this case
+	exMsg := map[string]interface{}{"type": "test", "i": 1}
 
-		signedMsg, msg1key, err := enc.Encode(1, zeroPrevious, exMsg)
-		r.NoError(err)
+	signedMsg, msg1key, err := enc.Encode(1, zeroPrevious, exMsg)
+	r.NoError(err)
 
-		var entry1 vectors.EntryBad
-		entry1.Reason = "okay genesis msg"
-		entry1.Invalid = false
+	var entry1 vectors.EntryBad
+	entry1.Reason = "okay genesis msg"
+	entry1.Invalid = false
 
-		entry1.EncodedData, err = signedMsg.MarshalBencode()
-		r.NoError(err)
+	entry1.EncodedData, err = signedMsg.MarshalBencode()
+	r.NoError(err)
 
-		bc.Entries = append(bc.Entries, entry1)
+	bc.Entries = append(bc.Entries, entry1)
 
-		// now create the offending 2nd msg
-		exMsg["i"] = 2
-		signedMsg2, _, err := enc.Encode(2, msg1key, exMsg)
-		r.NoError(err)
+	// now create the offending 2nd msg
+	exMsg["i"] = 2
+	signedMsg2, _, err := enc.Encode(2, msg1key, exMsg)
+	r.NoError(err)
 
-		var entry2 vectors.EntryBad
-		entry2.Reason = "wrong previous"
-		entry2.Invalid = true
+	var entry2 vectors.EntryBad
+	entry2.Reason = "wrong previous"
+	entry2.Invalid = true
 
-		entry2.EncodedData = fiddleWithMessage(t, signedMsg2, author.PrivateKey, func(msgFields []bencode.RawMessage) {
-			// overwrite previous with ff's
-			ffs := bytes.Repeat([]byte{0xff}, 32)
-			copy(msgFields[2][5:], ffs)
-		})
+	entry2.EncodedData = fiddleWithMessage(t, signedMsg2, author.PrivateKey, func(msgFields []bencode.RawMessage) {
+		// overwrite previous with ff's
+		ffs := bytes.Repeat([]byte{0xff}, 32)
+		copy(msgFields[2][5:], ffs)
+	})
 
-		bc.Entries = append(bc.Entries, entry2)
+	bc.Entries = append(bc.Entries, entry2)
 
-		// add the case to the vector file
-		*cases = append(*cases, bc)
-	}
+	return bc
 }
 
-func invalidSignatureMarkers(cases *[]vectors.BadCase) func(t *testing.T) {
-	return func(t *testing.T) {
-		r := require.New(t)
+func invalidSignatureMarkers(t *testing.T) vectors.BadCase {
+	r := require.New(t)
 
-		var bc vectors.BadCase
-		bc.Description = "4.1: invalid signature marker, first two bytes (just one message)"
+	var bc vectors.BadCase
 
-		// create a a keypair for an invalid formatted author
-		seed := bytes.Repeat([]byte("sec5"), 8)
-		bc.Metadata = append(bc.Metadata,
-			vectors.HexMetadata{" KeyPair Seed", seed},
-		)
+	// create a a keypair for an invalid formatted author
+	seed := bytes.Repeat([]byte("sec5"), 8)
+	bc.Metadata = append(bc.Metadata,
+		vectors.HexMetadata{" KeyPair Seed", seed},
+	)
 
-		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
-		r.NoError(err)
+	badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	r.NoError(err)
 
-		// create encoder for meta-feed entries
-		enc := metafeed.NewEncoder(badAuthor.Secret())
+	// create encoder for meta-feed entries
+	enc := metafeed.NewEncoder(badAuthor.Secret())
 
-		// fake timestamp
-		enc.WithNowTimestamps(true)
-		zeroTime := time.Unix(0, 0)
-		metafeed.SetNow(func() time.Time {
-			return zeroTime
-		})
+	// fake timestamp
+	enc.WithNowTimestamps(true)
+	zeroTime := time.Unix(0, 0)
+	metafeed.SetNow(func() time.Time {
+		return zeroTime
+	})
 
-		// zero previous for the first entry
-		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
-		r.NoError(err)
+	// zero previous for the first entry
+	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+	r.NoError(err)
 
-		// the content is not important for this case
-		exMsg := map[string]interface{}{"type": "test"}
+	// the content is not important for this case
+	exMsg := map[string]interface{}{"type": "test"}
 
-		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
-		r.NoError(err)
+	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+	r.NoError(err)
 
-		var entry vectors.EntryBad
-		entry.Reason = "invalid signature"
-		entry.Invalid = true
+	var entry vectors.EntryBad
+	entry.Reason = "invalid signature"
+	entry.Invalid = true
 
-		// break the signature
-		copy(signedMsg.Signature[:2], []byte{0xac, 0xab})
+	// break the signature
+	copy(signedMsg.Signature[:2], []byte{0xac, 0xab})
 
-		encoded, err := signedMsg.MarshalBencode()
-		r.NoError(err)
+	encoded, err := signedMsg.MarshalBencode()
+	r.NoError(err)
 
-		entry.EncodedData = encoded
+	entry.EncodedData = encoded
 
-		bc.Entries = append(bc.Entries, entry)
+	bc.Entries = append(bc.Entries, entry)
 
-		// add the case to the vector file
-		*cases = append(*cases, bc)
-	}
+	return bc
 }
 
-func brokenSignature(cases *[]vectors.BadCase) func(t *testing.T) {
-	return func(t *testing.T) {
-		r := require.New(t)
+func brokenSignature(t *testing.T) vectors.BadCase {
+	r := require.New(t)
 
-		var bc vectors.BadCase
-		bc.Description = "4.2: invalid signature (just one message)"
+	var bc vectors.BadCase
 
-		// create a a keypair for an invalid formatted author
-		seed := bytes.Repeat([]byte("sec5"), 8)
-		bc.Metadata = append(bc.Metadata,
-			vectors.HexMetadata{" KeyPair Seed", seed},
-		)
+	// create a a keypair for an invalid formatted author
+	seed := bytes.Repeat([]byte("sec5"), 8)
+	bc.Metadata = append(bc.Metadata,
+		vectors.HexMetadata{" KeyPair Seed", seed},
+	)
 
-		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
-		r.NoError(err)
+	badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	r.NoError(err)
 
-		// create encoder for meta-feed entries
-		enc := metafeed.NewEncoder(badAuthor.Secret())
+	// create encoder for meta-feed entries
+	enc := metafeed.NewEncoder(badAuthor.Secret())
 
-		// fake timestamp
-		enc.WithNowTimestamps(true)
-		zeroTime := time.Unix(0, 0)
-		metafeed.SetNow(func() time.Time {
-			return zeroTime
-		})
+	// fake timestamp
+	enc.WithNowTimestamps(true)
+	zeroTime := time.Unix(0, 0)
+	metafeed.SetNow(func() time.Time {
+		return zeroTime
+	})
 
-		// zero previous for the first entry
-		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
-		r.NoError(err)
+	// zero previous for the first entry
+	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+	r.NoError(err)
 
-		// the content is not important for this case
-		exMsg := map[string]interface{}{"type": "test"}
+	// the content is not important for this case
+	exMsg := map[string]interface{}{"type": "test"}
 
-		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
-		r.NoError(err)
+	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+	r.NoError(err)
 
-		var entry vectors.EntryBad
-		entry.Reason = "invalid signature"
-		entry.Invalid = true
+	var entry vectors.EntryBad
+	entry.Reason = "invalid signature"
+	entry.Invalid = true
 
-		// break the signature
-		for i, s := range signedMsg.Signature[2:] {
-			signedMsg.Signature[i+2] = s ^ 0xff
-		}
-
-		encoded, err := signedMsg.MarshalBencode()
-		r.NoError(err)
-
-		entry.EncodedData = encoded
-
-		bc.Entries = append(bc.Entries, entry)
-
-		// add the case to the vector file
-		*cases = append(*cases, bc)
+	// break the signature
+	for i, s := range signedMsg.Signature[2:] {
+		signedMsg.Signature[i+2] = s ^ 0xff
 	}
+
+	encoded, err := signedMsg.MarshalBencode()
+	r.NoError(err)
+
+	entry.EncodedData = encoded
+
+	bc.Entries = append(bc.Entries, entry)
+
+	return bc
 }
 
-func badSequence(cases *[]vectors.BadCase) func(t *testing.T) {
-	return func(t *testing.T) {
-		r := require.New(t)
+func badSequence(t *testing.T) vectors.BadCase {
+	r := require.New(t)
 
-		var bc vectors.BadCase
-		bc.Description = "5.1: two messages with bad sequences (1 and 3)"
+	var bc vectors.BadCase
 
-		// create a a keypair for an invalid formatted author
-		seed := bytes.Repeat([]byte("sec6"), 8)
-		bc.Metadata = append(bc.Metadata,
-			vectors.HexMetadata{" KeyPair Seed", seed},
-		)
+	// create a a keypair for an invalid formatted author
+	seed := bytes.Repeat([]byte("sec6"), 8)
+	bc.Metadata = append(bc.Metadata,
+		vectors.HexMetadata{" KeyPair Seed", seed},
+	)
 
-		author, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
-		r.NoError(err)
+	author, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	r.NoError(err)
 
-		// create encoder for meta-feed entries
-		enc := metafeed.NewEncoder(author.Secret())
+	// create encoder for meta-feed entries
+	enc := metafeed.NewEncoder(author.Secret())
 
-		// fake timestamp
-		enc.WithNowTimestamps(true)
-		zeroTime := time.Unix(0, 0)
-		metafeed.SetNow(func() time.Time {
-			return zeroTime
-		})
+	// fake timestamp
+	enc.WithNowTimestamps(true)
+	zeroTime := time.Unix(0, 0)
+	metafeed.SetNow(func() time.Time {
+		return zeroTime
+	})
 
-		// zero previous for the first entry
-		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
-		r.NoError(err)
+	// zero previous for the first entry
+	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+	r.NoError(err)
 
-		// the content is not important for this case
-		exMsg := map[string]interface{}{"type": "test", "i": 1}
+	// the content is not important for this case
+	exMsg := map[string]interface{}{"type": "test", "i": 1}
 
-		signedMsg, msg1key, err := enc.Encode(1, zeroPrevious, exMsg)
-		r.NoError(err)
+	signedMsg, msg1key, err := enc.Encode(1, zeroPrevious, exMsg)
+	r.NoError(err)
 
-		var entry1 vectors.EntryBad
-		entry1.Reason = "okay genesis msg"
-		entry1.Invalid = false
+	var entry1 vectors.EntryBad
+	entry1.Reason = "okay genesis msg"
+	entry1.Invalid = false
 
-		entry1.EncodedData, err = signedMsg.MarshalBencode()
-		r.NoError(err)
+	entry1.EncodedData, err = signedMsg.MarshalBencode()
+	r.NoError(err)
 
-		bc.Entries = append(bc.Entries, entry1)
+	bc.Entries = append(bc.Entries, entry1)
 
-		// now create the offending 2nd msg
-		exMsg["i"] = 2
-		signedMsg2, _, err := enc.Encode(3, msg1key, exMsg)
-		r.NoError(err)
+	// now create the offending 2nd msg
+	exMsg["i"] = 2
+	signedMsg2, _, err := enc.Encode(3, msg1key, exMsg)
+	r.NoError(err)
 
-		var entry2 vectors.EntryBad
-		entry2.Reason = "wrong sequence"
-		entry2.Invalid = true
+	var entry2 vectors.EntryBad
+	entry2.Reason = "wrong sequence"
+	entry2.Invalid = true
 
-		entry2.EncodedData, err = signedMsg2.MarshalBencode()
-		r.NoError(err)
+	entry2.EncodedData, err = signedMsg2.MarshalBencode()
+	r.NoError(err)
 
-		bc.Entries = append(bc.Entries, entry2)
+	bc.Entries = append(bc.Entries, entry2)
 
-		// add the case to the vector file
-		*cases = append(*cases, bc)
-	}
+	return bc
 }
 
-func tooMuchContent(cases *[]vectors.BadCase) func(t *testing.T) {
-	return func(t *testing.T) {
-		r := require.New(t)
+func tooMuchContent(t *testing.T) vectors.BadCase {
+	r := require.New(t)
 
-		var bc vectors.BadCase
-		bc.Description = "6.1: too long content (just one message)"
+	var bc vectors.BadCase
 
-		// create a a keypair for an invalid formatted author
-		seed := bytes.Repeat([]byte("sec7"), 8)
-		bc.Metadata = append(bc.Metadata,
-			vectors.HexMetadata{" KeyPair Seed", seed},
-		)
+	// create a a keypair for an invalid formatted author
+	seed := bytes.Repeat([]byte("sec7"), 8)
+	bc.Metadata = append(bc.Metadata,
+		vectors.HexMetadata{" KeyPair Seed", seed},
+	)
 
-		badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	r.NoError(err)
+
+	// create encoder for meta-feed entries
+	enc := metafeed.NewEncoder(badAuthor.Secret())
+
+	// fake timestamp
+	enc.WithNowTimestamps(true)
+	zeroTime := time.Unix(0, 0)
+	metafeed.SetNow(func() time.Time {
+		return zeroTime
+	})
+
+	// zero previous for the first entry
+	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+	r.NoError(err)
+
+	// the content is not important for this case
+	exMsg := map[string]interface{}{"type": "test"}
+
+	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+	r.NoError(err)
+
+	var entry vectors.EntryBad
+	entry.Reason = "invalid signature"
+	entry.Invalid = true
+
+	origMessage, err := signedMsg.MarshalBinary()
+	r.NoError(err)
+	origSize := len(origMessage)
+
+	entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
+		// decode the data
+		var data map[string]interface{}
+		err := bencode.DecodeBytes(msgFields[4], &data)
 		r.NoError(err)
 
-		// create encoder for meta-feed entries
-		enc := metafeed.NewEncoder(badAuthor.Secret())
+		// add one byte too much
+		data["moar"] = strings.Repeat("A", 8*1024-origSize+1)
 
-		// fake timestamp
-		enc.WithNowTimestamps(true)
-		zeroTime := time.Unix(0, 0)
-		metafeed.SetNow(func() time.Time {
-			return zeroTime
-		})
-
-		// zero previous for the first entry
-		zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
+		// rencode the object
+		msgFields[4], err = bencode.EncodeBytes(data)
 		r.NoError(err)
+	})
+	r.Greater(len(entry.EncodedData), 8*1024)
 
-		// the content is not important for this case
-		exMsg := map[string]interface{}{"type": "test"}
+	bc.Entries = append(bc.Entries, entry)
 
-		signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
-		r.NoError(err)
-
-		var entry vectors.EntryBad
-		entry.Reason = "invalid signature"
-		entry.Invalid = true
-
-		origMessage, err := signedMsg.MarshalBinary()
-		r.NoError(err)
-		origSize := len(origMessage)
-
-		entry.EncodedData = fiddleWithMessage(t, signedMsg, badAuthor.PrivateKey, func(msgFields []bencode.RawMessage) {
-			// decode the data
-			var data map[string]interface{}
-			err := bencode.DecodeBytes(msgFields[4], &data)
-			r.NoError(err)
-
-			// add one byte too much
-			data["moar"] = strings.Repeat("A", 8*1024-origSize+1)
-
-			// rencode the object
-			msgFields[4], err = bencode.EncodeBytes(data)
-			r.NoError(err)
-		})
-		r.Greater(len(entry.EncodedData), 8*1024)
-
-		bc.Entries = append(bc.Entries, entry)
-
-		// add the case to the vector file
-		*cases = append(*cases, bc)
-	}
+	return bc
 }
 
 // encodes a message and then unpacks it again, hands it to the passed function for mallace and then reencodes and signs it
