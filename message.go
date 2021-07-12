@@ -149,7 +149,7 @@ func (msg *Message) Key() refs.MessageRef {
 func (msg *Message) Seq() int64 {
 	err := msg.getPayload()
 	if err != nil {
-		log.Println("gabbygrove/verify event decoding failed:", err)
+		log.Println("metafeed/verify payload decoding failed:", err)
 		return -1
 	}
 	return int64(msg.payload.Sequence)
