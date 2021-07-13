@@ -40,7 +40,6 @@ func TestGenerateTestVectorBWithInvalidContent(t *testing.T) {
 		{"2.1: broken subfeed TFK", badContentSubfeedTFK},
 		{"2.2: broken metafeed TFK", badContentMetafeedTFK},
 
-		// {"3.1: broken b64 nonce value", badContentNonceBroken},
 		{"3.2: bad nonce length (short)", badContentNonceShort},
 		{"3.3: bad nonce length (long)", badContentNonceLonger},
 
@@ -215,63 +214,6 @@ func badContentMetafeedTFK(t *testing.T) vectors.BadCase {
 		// invalid tfk
 		m["metafeed"][3] = 0xff
 		m["metafeed"][4] = 0xff
-
-		changed, err := bencode.EncodeBytes(m)
-		r.NoError(err)
-
-		return changed
-	})
-
-	bc.Entries = append(bc.Entries, entry)
-	return bc
-}
-
-// TODO: really base64? https://github.com/ssb-ngi-pointer/bendy-butt-spec/issues/14
-func badContentNonceBroken(t *testing.T) vectors.BadCase {
-	var bc vectors.BadCase
-	r := require.New(t)
-
-	enc, kp := makeEncoder(t)
-	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
-
-	var nonce = make([]byte, 32)
-	copy(nonce, []byte("some actual bytes"))
-	bc.Metadata = append(bc.Metadata,
-		vectors.HexMetadata{"subfeed1 nonce", nonce},
-	)
-
-	// create the subfeed keypair
-	seededLabel := "ssb-meta-feed-seed-v1:" + base64.StdEncoding.EncodeToString(nonce)
-	subKey, err := metakeys.DeriveFromSeed(kp.Seed, seededLabel, refs.RefAlgoFeedSSB1)
-	r.NoError(err)
-	bc.Metadata = append(bc.Metadata, vectors.SubfeedAuthor{
-		Name: "subfeed1 author", Feed: subKey.Feed,
-	})
-
-	addSubFeed1Msg := metamngmt.NewAddMessage(kp.Feed, subKey.Feed, "main default", nonce)
-	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
-
-	// now sign the add content
-	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg)
-	r.NoError(err)
-
-	signedMsg, _, err := enc.Encode(1, zeroPrevious, signedAddContent)
-	r.NoError(err)
-
-	var entry vectors.EntryBad
-	entry.Reason = "Bad subfeed"
-	entry.Invalid = true
-
-	entry.EncodedData = fiddleWithContent(t, signedMsg, kp.PrivateKey, subKey.PrivateKey, func(content bencode.RawMessage) bencode.RawMessage {
-
-		var m map[string]bencode.RawMessage
-		err := bencode.DecodeBytes(content, &m)
-		r.NoError(err)
-
-		// invalid nonce base64
-		for i := 3; i < 35; i++ {
-			m["nonce"][i] = 0xff
-		}
 
 		changed, err := bencode.EncodeBytes(m)
 		r.NoError(err)
