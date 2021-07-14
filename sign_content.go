@@ -7,16 +7,10 @@ import (
 	"fmt"
 
 	"github.com/zeebo/bencode"
-	"go.mindeco.de/ssb-refs/tfk"
 	"golang.org/x/crypto/ed25519"
-)
 
-var (
-	// this gets prepended to the sign()/verify() input and achives domain seperation
-	signatureInputPrefix = []byte("metafeeds")
-
-	// these two bytes are TFK/BFE identifiers to clerify that the bytes are a signature
-	signatureOutputPrefix = []byte{0x04, 0x00}
+	"github.com/ssb-ngi-pointer/go-metafeed/internal/sign"
+	"go.mindeco.de/ssb-refs/tfk"
 )
 
 // SubSignContent uses the passed private key to sign the passed content after it was encoded.
@@ -28,12 +22,9 @@ func SubSignContent(pk ed25519.PrivateKey, content bencode.Marshaler) (bencode.R
 		return nil, fmt.Errorf("SubSignContent: failed to encode content for signing: %w", err)
 	}
 
-	signedMessage := append(signatureInputPrefix, contentBytes...)
-	sig := ed25519.Sign(pk, signedMessage)
-
 	signedValue := []interface{}{
 		bencode.RawMessage(contentBytes),
-		append(signatureOutputPrefix, sig...),
+		sign.Create(contentBytes, pk, nil), // TODO: pass hmac secret
 	}
 
 	contentAndSig, err := bencode.EncodeBytes(signedValue)
@@ -87,13 +78,7 @@ func VerifySubSignedContent(rawMessage []byte, content bencode.Unmarshaler) erro
 		return err
 	}
 
-	if !bytes.HasPrefix(sigBytes, signatureOutputPrefix) {
-		return fmt.Errorf("VerifySubSignedContent: expected signature prefix")
-	}
-
-	// manually check the signature againt entry 1
-	signedMessage := append(signatureInputPrefix, arr[0]...)
-	verified := ed25519.Verify(pubKey, signedMessage, sigBytes[2:])
+	verified := sign.Verify(arr[0], sigBytes, pubKey, nil) // TODO: pass hmac secret
 	if !verified {
 		return fmt.Errorf("VerifySubSignedContent: signature failed")
 	}
