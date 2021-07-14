@@ -22,20 +22,12 @@ var (
 	_ bencode.Unmarshaler = (*TanglePoint)(nil)
 )
 
-var (
-	// tfk null message
-	zeroBendyMessage = []byte{0x01, 0x04, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-
-	// null msg with the bencode length prefix
-	zeroBBMessageInBencode = append([]byte("34:"), zeroBendyMessage...)
-)
-
 // MarshalBencode encodes root and previous as Null if it's not set. If they are, it turns them into tfk byte strings.
 func (tp TanglePoint) MarshalBencode() ([]byte, error) {
 	var m = make(map[string]interface{}, 2)
 
 	if tp.Root == nil {
-		m["root"] = zeroBendyMessage
+		m["root"] = Null
 	} else {
 		tfkRoot, err := tfk.MessageFromRef(*tp.Root)
 		if err != nil {
@@ -49,7 +41,7 @@ func (tp TanglePoint) MarshalBencode() ([]byte, error) {
 	}
 
 	if n := len(tp.Previous); n == 0 {
-		m["previous"] = zeroBendyMessage
+		m["previous"] = Null
 	} else {
 		var prevs = make([][]byte, n)
 
@@ -85,7 +77,7 @@ func (tp *TanglePoint) UnmarshalBencode(input []byte) error {
 
 	var candidate refs.TanglePoint
 
-	if bytes.Equal(rawBytes.Root, zeroBBMessageInBencode) {
+	if bytes.Equal(rawBytes.Root, []byte{0x06, 0x02}) {
 		candidate.Root = nil
 	} else {
 		var msg tfk.Message
@@ -102,7 +94,7 @@ func (tp *TanglePoint) UnmarshalBencode(input []byte) error {
 		candidate.Root = &root
 	}
 
-	if bytes.Equal(rawBytes.Previous, zeroBBMessageInBencode) {
+	if bytes.Equal(rawBytes.Previous, Null) {
 		candidate.Previous = nil
 	} else {
 		var byteSlices [][]byte
