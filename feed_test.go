@@ -26,14 +26,11 @@ func check(err error) {
 }
 
 func createTestEntry(author refs.FeedRef) metafeed.Payload {
-	zeroPrev, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
-	check(err)
-
 	// now construct a test entry
 	return metafeed.Payload{
 		Author:    author,
 		Sequence:  1,
-		Previous:  zeroPrev,
+		Previous:  nil,
 		Timestamp: time.Unix(10, 0), // 10 seconds after midnight
 		Content:   bencode.RawMessage("12:hello, world"),
 	}
@@ -81,11 +78,9 @@ func ExamplePayload() {
 	// Output:
 	// 00000000  6c 33 34 3a 00 03 01 02  03 04 05 06 07 08 09 0a  |l34:............|
 	// 00000010  0b 0c 0d 0e 0f 10 11 12  13 14 15 16 17 18 19 1a  |................|
-	// 00000020  1b 1c 1d 1e 1f 20 69 31  65 33 34 3a 01 04 00 00  |..... i1e34:....|
-	// 00000030  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
-	// 00000040  00 00 00 00 00 00 00 00  00 00 00 00 00 00 69 31  |..............i1|
-	// 00000050  30 65 31 32 3a 68 65 6c  6c 6f 2c 20 77 6f 72 6c  |0e12:hello, worl|
-	// 00000060  64 65
+	// 00000020  1b 1c 1d 1e 1f 20 69 31  65 32 3a 06 02 69 31 30  |..... i1e2:..i10|
+	// 00000030  65 31 32 3a 68 65 6c 6c  6f 2c 20 77 6f 72 6c 64  |e12:hello, world|
+	// 00000040  65
 }
 
 func TestDecodeEntry(t *testing.T) {
@@ -115,14 +110,14 @@ func TestDecodeEntry(t *testing.T) {
 	got := fmt.Sprintln()
 	got += fmt.Sprintln("Author:", ee.Author.Ref())
 	got += fmt.Sprintln("Seq:", ee.Sequence)
-	got += fmt.Sprintln("Previous:", ee.Previous.Ref())
+	got += fmt.Sprintln("Previous:", ee.Previous)
 	got += fmt.Sprintln("Timestamp:", ee.Timestamp.UTC().String())
 	got += fmt.Sprintf("Content: %q", string(ee.Content))
 
 	want := `
 Author: @AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=.bbfeed-v1
 Seq: 1
-Previous: %AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=.bbmsg-v1
+Previous: <nil>
 Timestamp: 1970-01-01 00:00:10 +0000 UTC
 Content: "12:hello, world"`
 	r.Equal(want, got)

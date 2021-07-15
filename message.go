@@ -173,7 +173,7 @@ func (msg *Message) Previous() *refs.MessageRef {
 	if msg.payload.Sequence == 1 {
 		return nil
 	}
-	return &msg.payload.Previous
+	return msg.payload.Previous
 }
 
 // Received needs to be repalced by the database (this spoofs it as the calimed timestamp)
@@ -212,7 +212,7 @@ func (msg *Message) ValueContent() *refs.Value {
 	}
 	var val refs.Value
 	if msg.payload.Sequence > 1 {
-		val.Previous = &msg.payload.Previous
+		val.Previous = msg.payload.Previous
 	}
 
 	val.Author = msg.payload.Author

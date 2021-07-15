@@ -83,6 +83,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 	var tvEntry vectors.EntryGood
 	tvEntry.Author = metaKey.Feed
 	tvEntry.Sequence = 1
+	tvEntry.Previous = nil
 	tvEntry.Timestamp = 0
 	tvEntry.HighlevelContent = []interface{}{
 		addSubFeed1Msg,
@@ -91,11 +92,6 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 			HexString: assertSubsignedAndGetSignatureBytes(t, signedAddContent),
 		},
 	}
-
-	// zero previous for the first entry
-	zeroPrevious, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
-	r.NoError(err)
-	tvEntry.Previous = zeroPrevious
 
 	// now encode and sign the message
 	signedAddMessage, msg1Key, err := enc.Encode(1, zeroPrevious, signedAddContent)
@@ -138,7 +134,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 
 	var tvEntry2 vectors.EntryGood
 	tvEntry2.Author = metaKey.Feed
-	tvEntry2.Previous = msg1Key
+	tvEntry2.Previous = &msg1Key
 	tvEntry2.Sequence = 2
 	tvEntry2.Timestamp = 0
 	tvEntry2.HighlevelContent = []interface{}{
@@ -171,7 +167,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 
 	var tvEntry3 vectors.EntryGood
 	tvEntry3.Author = metaKey.Feed
-	tvEntry3.Previous = msg2Key
+	tvEntry3.Previous = &msg2Key
 	tvEntry3.Sequence = 3
 	tvEntry3.Timestamp = 0
 	tvEntry3.HighlevelContent = []interface{}{
