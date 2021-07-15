@@ -25,15 +25,6 @@ import (
 
 var zeroPrevious refs.MessageRef
 
-func init() {
-	var err error
-	// zero previous for the first entry
-	zeroPrevious, err = refs.NewMessageRefFromBytes(bytes.Repeat([]byte{0}, 32), refs.RefAlgoMessageBendyButt)
-	if err != nil {
-		panic(err)
-	}
-}
-
 // This generates the "bad messages" vector file.
 // See https://github.com/ssb-ngi-pointer/bendy-butt-spec/#validation for more
 func TestGenerateTestVectorAWithInvalidMessages(t *testing.T) {

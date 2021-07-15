@@ -136,7 +136,6 @@ func (p *Payload) UnmarshalBencode(input []byte) error {
 		if !bytes.Equal(previousBytes, bencodeext.Null) {
 			return fmt.Errorf("metafeed/payload: invalid first message previous entry")
 		}
-
 	} else {
 		var prev tfk.Message
 		err = prev.UnmarshalBinary(previousBytes)
@@ -150,6 +149,7 @@ func (p *Payload) UnmarshalBencode(input []byte) error {
 		}
 		p.Previous = &prevMsg
 	}
+
 	// elem 4: timestamp
 	var tsInSeconds int64
 	err = bencode.NewDecoder(bytes.NewReader(raw[3])).Decode(&tsInSeconds)

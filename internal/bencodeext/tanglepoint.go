@@ -77,7 +77,7 @@ func (tp *TanglePoint) UnmarshalBencode(input []byte) error {
 
 	var candidate refs.TanglePoint
 
-	if bytes.Equal(rawBytes.Root, []byte{0x06, 0x02}) {
+	if bytes.Equal(rawBytes.Root, Null) {
 		candidate.Root = nil
 	} else {
 		var msg tfk.Message
@@ -94,7 +94,7 @@ func (tp *TanglePoint) UnmarshalBencode(input []byte) error {
 		candidate.Root = &root
 	}
 
-	if bytes.Equal(rawBytes.Previous, Null) {
+	if bytes.Equal(rawBytes.Previous, NullRawMessage) {
 		candidate.Previous = nil
 	} else {
 		var byteSlices [][]byte
