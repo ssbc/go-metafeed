@@ -11,8 +11,9 @@ import (
 )
 
 type wrappedTombstone struct {
-	Type    bencodeext.String `bencode:"type"`
-	SubFeed []byte            `bencode:"subfeed"`
+	Type     bencodeext.String `bencode:"type"`
+	SubFeed  []byte            `bencode:"subfeed"`
+	MetaFeed []byte            `bencode:"metafeed"`
 
 	Tangles map[string]bencodeext.TanglePoint `bencode:"tangles"`
 }
@@ -27,12 +28,19 @@ func (t Tombstone) MarshalBencode() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("metafeed/tombstone: failed to turn subfeed into tfk: %w", err)
 	}
-	sfBytes, err := subFeedTFK.MarshalBinary()
+	wt.SubFeed, err = subFeedTFK.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("metafeed/tombstone: failed to encode tfk subfeed: %w", err)
 	}
 
-	wt.SubFeed = sfBytes
+	metaFeedTFK, err := tfk.FeedFromRef(t.MetaFeed)
+	if err != nil {
+		return nil, fmt.Errorf("metafeed/tombstone: failed to turn metafeed into tfk: %w", err)
+	}
+	wt.MetaFeed, err = metaFeedTFK.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("metafeed/tombstone: failed to encode tfk metafeed: %w", err)
+	}
 
 	return bencode.EncodeBytes(wt)
 }
@@ -55,10 +63,19 @@ func (t *Tombstone) UnmarshalBencode(input []byte) error {
 	if err != nil {
 		return fmt.Errorf("metafeed/tombstone: failed to decode tfk subfeed: %w", err)
 	}
-
 	t.SubFeed, err = subFeed.Feed()
 	if err != nil {
 		return fmt.Errorf("metafeed/tombstone: failed to turn subfeed tfk into feed: %w", err)
+	}
+
+	var metaFeed tfk.Feed
+	err = metaFeed.UnmarshalBinary(wt.MetaFeed)
+	if err != nil {
+		return fmt.Errorf("metafeed/tombstone: failed to decode tfk metafeed: %w", err)
+	}
+	t.MetaFeed, err = metaFeed.Feed()
+	if err != nil {
+		return fmt.Errorf("metafeed/tombstone: failed to turn metafeed tfk into feed: %w", err)
 	}
 
 	t.Tangles = bencodedToRefTangles(wt.Tangles)
