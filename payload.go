@@ -89,7 +89,7 @@ func (p *Payload) UnmarshalBencode(input []byte) error {
 	// first, split up the array in raw parts (decodeing to []interface{} is annoying if we know the types anyhow)
 	var raw []bencode.RawMessage
 
-	err := bencode.NewDecoder(bytes.NewReader(input)).Decode(&raw)
+	err := bencode.DecodeBytes(input, &raw)
 	if err != nil {
 		return fmt.Errorf("metafeed/payload: failed to decode raw slices: %w", err)
 	}
@@ -100,7 +100,7 @@ func (p *Payload) UnmarshalBencode(input []byte) error {
 
 	// elem 1: author
 	var authorBytes []byte
-	err = bencode.NewDecoder(bytes.NewReader(raw[0])).Decode(&authorBytes)
+	err = bencode.DecodeBytes(raw[0], &authorBytes)
 	if err != nil {
 		return fmt.Errorf("metafeed/payload: failed to get bytes from author position: %w", err)
 	}
@@ -120,14 +120,14 @@ func (p *Payload) UnmarshalBencode(input []byte) error {
 	}
 
 	// elem 2: sequence
-	err = bencode.NewDecoder(bytes.NewReader(raw[1])).Decode(&p.Sequence)
+	err = bencode.DecodeBytes(raw[1], &p.Sequence)
 	if err != nil {
 		return fmt.Errorf("metafeed/payload: expected squence: %w", err)
 	}
 
 	// elem 3: previous
 	var previousBytes []byte
-	err = bencode.NewDecoder(bytes.NewReader(raw[2])).Decode(&previousBytes)
+	err = bencode.DecodeBytes(raw[2], &previousBytes)
 	if err != nil {
 		return fmt.Errorf("metafeed/payload: failed to decode previous bytes: %w", err)
 	}
@@ -152,7 +152,7 @@ func (p *Payload) UnmarshalBencode(input []byte) error {
 
 	// elem 4: timestamp
 	var tsInSeconds int64
-	err = bencode.NewDecoder(bytes.NewReader(raw[3])).Decode(&tsInSeconds)
+	err = bencode.DecodeBytes(raw[3], &tsInSeconds)
 	if err != nil {
 		return fmt.Errorf("metafeed/payload: failed to decode timestamp integer: %w", err)
 	}

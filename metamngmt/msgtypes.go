@@ -97,6 +97,7 @@ var (
 	_ bencode.Unmarshaler = (*Announce)(nil)
 )
 
+// Tombstone is used to end the lifetime of a subfeed
 type Tombstone struct {
 	Type    string       `json:"type"`
 	SubFeed refs.FeedRef `json:"subfeed"`

@@ -3,7 +3,6 @@
 package metamngmt
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
@@ -18,6 +17,7 @@ type wrappedTombstone struct {
 	Tangles map[string]bencodeext.TanglePoint `bencode:"tangles"`
 }
 
+// MarshalBencode packs an Tombstone message into bencode extended data.
 func (t Tombstone) MarshalBencode() ([]byte, error) {
 	var wt wrappedTombstone
 	wt.Type = bencodeext.String(t.Type)
@@ -37,20 +37,21 @@ func (t Tombstone) MarshalBencode() ([]byte, error) {
 	return bencode.EncodeBytes(wt)
 }
 
+// UnmarshalBencode unpacks bencode extended data into an Tombstone message.
 func (t *Tombstone) UnmarshalBencode(input []byte) error {
-	var wa wrappedTombstone
-	err := bencode.NewDecoder(bytes.NewReader(input)).Decode(&wa)
+	var wt wrappedTombstone
+	err := bencode.DecodeBytes(input, &wt)
 	if err != nil {
 		return fmt.Errorf("metamgngmt/tombstone: failed to unwrap bencode value: %w", err)
 	}
 
-	t.Type = string(wa.Type)
+	t.Type = string(wt.Type)
 	if t.Type != "metafeed/tombstone" {
 		return fmt.Errorf("metafeed/tombstone: invalid message type: %s", t.Type)
 	}
 
 	var subFeed tfk.Feed
-	err = subFeed.UnmarshalBinary(wa.SubFeed)
+	err = subFeed.UnmarshalBinary(wt.SubFeed)
 	if err != nil {
 		return fmt.Errorf("metafeed/tombstone: failed to decode tfk subfeed: %w", err)
 	}
@@ -60,7 +61,7 @@ func (t *Tombstone) UnmarshalBencode(input []byte) error {
 		return fmt.Errorf("metafeed/tombstone: failed to turn subfeed tfk into feed: %w", err)
 	}
 
-	t.Tangles = bencodedToRefTangles(wa.Tangles)
+	t.Tangles = bencodedToRefTangles(wt.Tangles)
 
 	return nil
 }

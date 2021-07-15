@@ -70,7 +70,7 @@ func (tp *TanglePoint) UnmarshalBencode(input []byte) error {
 		Previous bencode.RawMessage `bencode:"previous"`
 	}
 
-	err := bencode.NewDecoder(bytes.NewReader(input)).Decode(&rawBytes)
+	err := bencode.DecodeBytes(input, &rawBytes)
 	if err != nil {
 		return fmt.Errorf("bencext/tanglePoint: failed to decode raw bytes: %w", err)
 	}
@@ -98,7 +98,7 @@ func (tp *TanglePoint) UnmarshalBencode(input []byte) error {
 		candidate.Previous = nil
 	} else {
 		var byteSlices [][]byte
-		err := bencode.NewDecoder(bytes.NewReader(rawBytes.Previous)).Decode(&byteSlices)
+		err := bencode.DecodeBytes(rawBytes.Previous, &byteSlices)
 		if err != nil {
 			return fmt.Errorf("bencext/tanglePoint: failed to decode byte array for previous hashes: %w", err)
 		}

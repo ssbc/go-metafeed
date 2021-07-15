@@ -219,13 +219,13 @@ func assertSubsignedAndGetSignatureBytes(t *testing.T, msg bencode.RawMessage) [
 
 	// assert it's an array with two parts
 	var decodedSignedAddContent []bencode.RawMessage
-	err := bencode.NewDecoder(bytes.NewReader(msg)).Decode(&decodedSignedAddContent)
+	err := bencode.DecodeBytes(msg, &decodedSignedAddContent)
 	r.NoError(err)
 	r.Len(decodedSignedAddContent, 2)
 
 	// extract the signature from part2
 	var justTheSig []byte
-	err = bencode.NewDecoder(bytes.NewReader(decodedSignedAddContent[1])).Decode(&justTheSig)
+	err = bencode.DecodeBytes(decodedSignedAddContent[1], &justTheSig)
 	r.NoError(err)
 
 	return justTheSig
