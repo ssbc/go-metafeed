@@ -3,11 +3,11 @@
 package metamngmt
 
 import (
-	"bytes"
 	"fmt"
 
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
 	"github.com/zeebo/bencode"
+
+	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
 	"go.mindeco.de/ssb-refs/tfk"
 )
 
@@ -23,6 +23,8 @@ type wrappedAdd struct {
 	Tangles bencodeext.Tangles `bencode:"tangles"`
 }
 
+// MarshalBencode turns an add Message into bencode bytes,
+// using the bencode extenstions to cleanly seperate different types of string data
 func (a Add) MarshalBencode() ([]byte, error) {
 	// create TFK values for sub- and meta-feed
 	subFeedTFK, err := tfk.FeedFromRef(a.SubFeed)
@@ -56,9 +58,10 @@ func (a Add) MarshalBencode() ([]byte, error) {
 	return bencode.EncodeBytes(value)
 }
 
+// UnmarshalBencode unpacks and validates all the bencode data that describe an Add message
 func (a *Add) UnmarshalBencode(input []byte) error {
 	var wa wrappedAdd
-	err := bencode.NewDecoder(bytes.NewReader(input)).Decode(&wa)
+	err := bencode.DecodeBytes(input, &wa)
 	if err != nil {
 		return fmt.Errorf("metamgngmt/add: failed to unwrap bencode value: %w", err)
 	}

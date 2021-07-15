@@ -46,7 +46,7 @@ func TestEncoder(t *testing.T) {
 	dead := bytes.Repeat([]byte("dead"), 8)
 	pubKey, privKey := generatePrivateKey(t, bytes.NewReader(dead))
 	tv.Metadata = append(tv.Metadata,
-		vectors.HexMetadata{"Seed for Metafeed KeyPair", dead},
+		vectors.HexMetadata{Name: "Seed for Metafeed KeyPair", HexString: dead},
 	)
 
 	authorRef, err := refFromPubKey(pubKey)

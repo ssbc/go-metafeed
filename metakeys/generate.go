@@ -15,18 +15,21 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
+// Some constants
 const (
 	SeedLength = 64
 
 	RootLabel = "ssb-meta-feeds-v1:metafeed"
 )
 
+// GenerateSeed returns a fresh seed of Seedlength bytes, using crypto/rand as a source
 func GenerateSeed() ([]byte, error) {
 	sbuf := make([]byte, SeedLength)
 	_, err := io.ReadFull(rand.Reader, sbuf)
 	return sbuf, err
 }
 
+// DeriveFromSeed generates a new KeyPair using the seed and label for hkdf derivation
 func DeriveFromSeed(seed []byte, label string, algo refs.RefAlgo) (KeyPair, error) {
 	// TODO: confirm with @arj
 	// if n := len(seed); n != SeedLength {
@@ -57,6 +60,8 @@ func DeriveFromSeed(seed []byte, label string, algo refs.RefAlgo) (KeyPair, erro
 	}, err
 }
 
+// KeyPair is a bendybutt metafeed keypair and the corresponding feed refrence.
+// It also keeps the seed around for deriving further keys from it.
 type KeyPair struct {
 	Seed []byte
 
@@ -64,10 +69,12 @@ type KeyPair struct {
 	PrivateKey ed25519.PrivateKey
 }
 
+// ID returns the feed reference of the keypair (implements ssb.KeyPair)
 func (kp KeyPair) ID() refs.FeedRef {
 	return kp.Feed
 }
 
+// Secret returns the private part of the keypair (implements ssb.KeyPair)
 func (kp KeyPair) Secret() ed25519.PrivateKey {
 	return kp.PrivateKey
 }
@@ -84,16 +91,22 @@ type typedKeyPair struct {
 	PrivateKey ed25519.PrivateKey
 }
 
+// MarshalJSON turns a keypair into json data adding a `Type: "bendy-butt"` to it
 func (kp KeyPair) MarshalJSON() ([]byte, error) {
 	var tkp = typedKeyPair{"bendy-butt", kp.Seed, kp.Feed, kp.PrivateKey}
 	return json.Marshal(tkp)
 }
 
+// UnmarshalJSON checks if the input data is indeed an object that descripts a bendy-butt keypair
 func (kp *KeyPair) UnmarshalJSON(input []byte) error {
 	var newKp typedKeyPair
 	err := json.Unmarshal(input, &newKp)
 	if err != nil {
 		return err
+	}
+
+	if newKp.Type != "bendy-butt" {
+		return fmt.Errorf("invalid keypair type: %q", newKp.Type)
 	}
 
 	if newKp.Feed.Algo() != refs.RefAlgoFeedBendyButt {

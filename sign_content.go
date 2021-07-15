@@ -3,7 +3,6 @@
 package metafeed
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/zeebo/bencode"
@@ -53,7 +52,7 @@ func VerifySubSignedContent(rawMessage []byte, content bencode.Unmarshaler) erro
 	var justSubFeedBytes struct {
 		SubFeed []byte `bencode:"subfeed"`
 	}
-	err = bencode.NewDecoder(bytes.NewReader(arr[0])).Decode(&justSubFeedBytes)
+	err = bencode.DecodeBytes(arr[0], &justSubFeedBytes)
 	if err != nil {
 		return err
 	}
@@ -73,7 +72,7 @@ func VerifySubSignedContent(rawMessage []byte, content bencode.Unmarshaler) erro
 
 	// decode the entry 2nd to strip of the length prefix to get the pure bytes
 	var sigBytes []byte
-	err = bencode.NewDecoder(bytes.NewReader(arr[1])).Decode(&sigBytes)
+	err = bencode.DecodeBytes(arr[1], &sigBytes)
 	if err != nil {
 		return err
 	}

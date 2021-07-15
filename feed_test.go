@@ -140,12 +140,12 @@ func TestBoolValues(t *testing.T) {
 	r.Equal(trueAsBytes, oneAsBytes)
 
 	var truethy bool
-	err = bencode.NewDecoder(bytes.NewReader(oneAsBytes)).Decode(&truethy)
+	err = bencode.DecodeBytes(oneAsBytes, &truethy)
 	r.NoError(err)
 
 	r.True(truethy)
 
-	err = bencode.NewDecoder(bytes.NewReader(zeroAsBytes)).Decode(&truethy)
+	err = bencode.DecodeBytes(zeroAsBytes, &truethy)
 	r.NoError(err)
 
 	r.False(truethy)

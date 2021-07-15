@@ -48,6 +48,8 @@ func (e *Encoder) WithHMAC(in []byte) error {
 // for testable timestamps, so that now can be reset in the tests
 var now = time.Now
 
+// SetNow can be used to create arbitrary timestamps on a message.
+// Mostly used for testing.
 func SetNow(fn func() time.Time) {
 	now = fn
 }

@@ -3,7 +3,6 @@
 package metafeed
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding"
 	"encoding/base64"
@@ -50,8 +49,7 @@ func (msg *Message) UnmarshalBencode(input []byte) error {
 	}
 
 	var raw []bencode.RawMessage
-
-	err := bencode.NewDecoder(bytes.NewReader(input)).Decode(&raw)
+	err := bencode.DecodeBytes(input, &raw)
 	if err != nil {
 		return fmt.Errorf("failed to decode raw Message array: %w", err)
 	}
@@ -64,7 +62,7 @@ func (msg *Message) UnmarshalBencode(input []byte) error {
 	msg.Data = raw[0]
 
 	// make sure it's a valid byte string
-	err = bencode.NewDecoder(bytes.NewReader(raw[1])).Decode(&msg.Signature)
+	err = bencode.DecodeBytes(raw[1], &msg.Signature)
 	if err != nil {
 		return fmt.Errorf("metafeed/Message: failed to decode signature portion: %w", err)
 	}
@@ -194,7 +192,7 @@ func (msg *Message) Claimed() time.Time {
 // ContentBytes returns the pure bencoded content portion of the message
 func (msg *Message) ContentBytes() []byte {
 	var arr []bencode.RawMessage
-	err := bencode.NewDecoder(bytes.NewReader(msg.Data)).Decode(&arr)
+	err := bencode.DecodeBytes(msg.Data, &arr)
 	if err != nil {
 		panic(err)
 	}
@@ -223,7 +221,7 @@ func (msg *Message) ValueContent() *refs.Value {
 
 	// TODO: peek at first byte (tfk indicating box2 for instance)
 	var helper interface{}
-	err = bencode.NewDecoder(bytes.NewReader(msg.payload.Content)).Decode(&helper)
+	err = bencode.DecodeBytes(msg.payload.Content, &helper)
 	if err != nil {
 		panic(err)
 	}

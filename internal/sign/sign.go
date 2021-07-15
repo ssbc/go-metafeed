@@ -5,8 +5,8 @@ package sign
 
 import (
 	"bytes"
-	"crypto/ed25519"
 
+	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/nacl/auth"
 )
 
@@ -18,6 +18,10 @@ var (
 	outputPrefix = []byte{0x04, 0x00}
 )
 
+// Create creates the signature over the passed input bytes using the passed secret key.
+// To achive domain seperation, the input is prefixed with the string "metafeeds".
+// The resulting signature is prefixed with the two bytes 0x0400, which are bendybutt bencode extension to denote it being a signature.
+// If hmacSec is not nil, the prefixed input is hashed using nacl's auth.Sum() before the signature is created.
 func Create(input []byte, key ed25519.PrivateKey, hmacSec *[32]byte) []byte {
 	toSign := append(inputPrefix, input...)
 	if hmacSec != nil {
@@ -29,6 +33,9 @@ func Create(input []byte, key ed25519.PrivateKey, hmacSec *[32]byte) []byte {
 	return append(outputPrefix, sig...)
 }
 
+// Verify checks if the passed signature was indeed created over the passed data, using the same domain seperation as the Create() function in this package.
+// It checks if the signature has the right prefix (0x0400) and then prepends the string "metafeeds" to the data.
+// If hmacSec is not nil, the prefixed input is hashed using nacl's auth.Sum() before the signature is verified.
 func Verify(data, signature []byte, pubKey ed25519.PublicKey, hmacSec *[32]byte) bool {
 	if !bytes.HasPrefix(signature, outputPrefix) {
 		return false
