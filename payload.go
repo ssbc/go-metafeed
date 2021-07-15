@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
 	"github.com/zeebo/bencode"
 	refs "go.mindeco.de/ssb-refs"
 	"go.mindeco.de/ssb-refs/tfk"
@@ -17,7 +18,7 @@ import (
 type Payload struct {
 	Author    refs.FeedRef
 	Sequence  int
-	Previous  refs.MessageRef
+	Previous  *refs.MessageRef
 	Timestamp time.Time
 	Content   bencode.RawMessage
 }
@@ -42,7 +43,10 @@ func (p *Payload) MarshalBencode() ([]byte, error) {
 
 	var prevAsBytes []byte
 	if p.Sequence > 1 {
-		prevMsg, err := tfk.MessageFromRef(p.Previous)
+		if p.Previous == nil {
+			return nil, fmt.Errorf("metafeed/payload: previous nil on seq %d", p.Sequence)
+		}
+		prevMsg, err := tfk.MessageFromRef(*p.Previous)
 		if err != nil {
 			return nil, fmt.Errorf("metafeed/payload: failed to turn previous into a tfk: %w", err)
 		}
@@ -52,9 +56,7 @@ func (p *Payload) MarshalBencode() ([]byte, error) {
 			return nil, fmt.Errorf("metafeed/payload: failed to encode previous tfk: %w", err)
 		}
 	} else {
-		prevAsBytes = bytes.Repeat([]byte{0}, 32+2)
-		prevAsBytes[0] = tfk.TypeMessage
-		prevAsBytes[1] = tfk.FormatMessageMetaFeed
+		prevAsBytes = bencodeext.Null
 	}
 
 	output, err := bencode.EncodeBytes([]interface{}{
@@ -130,29 +132,23 @@ func (p *Payload) UnmarshalBencode(input []byte) error {
 		return fmt.Errorf("metafeed/payload: failed to decode previous bytes: %w", err)
 	}
 
-	var prev tfk.Message
-	err = prev.UnmarshalBinary(previousBytes)
-	if err != nil {
-		return fmt.Errorf("metafeed/payload: failed to decode previous tfk: %w", err)
-	}
-
-	p.Previous, err = prev.Message()
-	if err != nil {
-		return fmt.Errorf("metafeed/payload: failed to turn previous tfk into a message: %w", err)
-	}
-
 	if p.Sequence == 1 {
-
-		var prev = make([]byte, 32)
-		err = p.Previous.CopyHashTo(prev)
-		if err != nil {
-			return err
-		}
-
-		if !bytes.Equal(prev, bytes.Repeat([]byte{0}, 32)) {
+		if !bytes.Equal(previousBytes, bencodeext.Null) {
 			return fmt.Errorf("metafeed/payload: invalid first message previous entry")
 		}
 
+	} else {
+		var prev tfk.Message
+		err = prev.UnmarshalBinary(previousBytes)
+		if err != nil {
+			return fmt.Errorf("metafeed/payload: failed to decode previous tfk: %w", err)
+		}
+
+		prevMsg, err := prev.Message()
+		if err != nil {
+			return fmt.Errorf("metafeed/payload: failed to turn previous tfk into a message: %w", err)
+		}
+		p.Previous = &prevMsg
 	}
 	// elem 4: timestamp
 	var tsInSeconds int64

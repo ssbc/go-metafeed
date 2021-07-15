@@ -55,7 +55,7 @@ func TestGenerateTestVectorAWithInvalidMessages(t *testing.T) {
 		{"2.2: previous with bad TFK format", badPreviousFormat},
 		{"2.3: previous with bad TFK length", badPreviousLength},
 
-		{"3.1: non-zero previous on first message", badPreviousNonZero},
+		{"3.1: bad first NULL previous", badPreviousNull},
 		{"3.2: 2nd message has wrong previous", badPreviousInvalid},
 
 		{"4.1: invalid signature marker, first two bytes", invalidSignatureMarkers},
@@ -186,7 +186,7 @@ func badAuthorLength(t *testing.T) vectors.BadCase {
 	return bc
 }
 
-func badPreviousType(t *testing.T) vectors.BadCase {
+func badPreviousNull(t *testing.T) vectors.BadCase {
 	r := require.New(t)
 
 	var bc vectors.BadCase
@@ -201,16 +201,56 @@ func badPreviousType(t *testing.T) vectors.BadCase {
 	r.NoError(err)
 
 	var entry vectors.EntryBad
-	entry.Reason = "bad previous type"
+	entry.Reason = "bad previous null"
 	entry.Invalid = true
 
 	entry.EncodedData = fiddleWithMessage(t, signedMsg, kp.PrivateKey, func(msgFields []bencode.RawMessage) {
+		msgFields[2] = []byte("4:1234")
+	})
+
+	bc.Entries = append(bc.Entries, entry)
+	return bc
+}
+
+func badPreviousType(t *testing.T) vectors.BadCase {
+	r := require.New(t)
+
+	var bc vectors.BadCase
+
+	enc, kp := makeEncoder(t)
+	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
+
+	// the content is not important for this case
+	exMsg := map[string]interface{}{"type": "test", "i": 1}
+
+	signedMsg, msg1key, err := enc.Encode(1, zeroPrevious, exMsg)
+	r.NoError(err)
+
+	var entry1 vectors.EntryBad
+	entry1.Reason = "okay genesis msg"
+	entry1.Invalid = false
+
+	entry1.EncodedData, err = signedMsg.MarshalBencode()
+	r.NoError(err)
+
+	bc.Entries = append(bc.Entries, entry1)
+
+	// now create the offending 2nd msg
+	exMsg["i"] = 2
+	signedMsg2, _, err := enc.Encode(2, msg1key, exMsg)
+	r.NoError(err)
+
+	var entry2 vectors.EntryBad
+	entry2.Reason = "bad previous type"
+	entry2.Invalid = true
+
+	entry2.EncodedData = fiddleWithMessage(t, signedMsg2, kp.PrivateKey, func(msgFields []bencode.RawMessage) {
 		// set TFK type from 1 to 255
 		r.Equal(uint8(1), msgFields[2][3])
 		msgFields[2][3] = 0xff
 	})
 
-	bc.Entries = append(bc.Entries, entry)
+	bc.Entries = append(bc.Entries, entry2)
 	return bc
 }
 
@@ -225,20 +265,34 @@ func badPreviousFormat(t *testing.T) vectors.BadCase {
 	// the content is not important for this case
 	exMsg := map[string]interface{}{"type": "test", "i": 1}
 
-	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+	signedMsg, msg1key, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
 
-	var entry vectors.EntryBad
-	entry.Reason = "bad previous format"
-	entry.Invalid = true
+	var entry1 vectors.EntryBad
+	entry1.Reason = "okay genesis msg"
+	entry1.Invalid = false
 
-	entry.EncodedData = fiddleWithMessage(t, signedMsg, kp.PrivateKey, func(msgFields []bencode.RawMessage) {
+	entry1.EncodedData, err = signedMsg.MarshalBencode()
+	r.NoError(err)
+
+	bc.Entries = append(bc.Entries, entry1)
+
+	// now create the offending 2nd msg
+	exMsg["i"] = 2
+	signedMsg2, _, err := enc.Encode(2, msg1key, exMsg)
+	r.NoError(err)
+
+	var entry2 vectors.EntryBad
+	entry2.Reason = "bad previous format"
+	entry2.Invalid = true
+
+	entry2.EncodedData = fiddleWithMessage(t, signedMsg2, kp.PrivateKey, func(msgFields []bencode.RawMessage) {
 		// set TFK format to 255
 		r.Equal(uint8(4), msgFields[2][4])
 		msgFields[2][4] = 0xff
 	})
 
-	bc.Entries = append(bc.Entries, entry)
+	bc.Entries = append(bc.Entries, entry2)
 
 	return bc
 }
@@ -250,18 +304,31 @@ func badPreviousLength(t *testing.T) vectors.BadCase {
 
 	enc, kp := makeEncoder(t)
 	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
-
 	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test", "name": t.Name()}
+	exMsg := map[string]interface{}{"type": "test", "i": 1}
 
-	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
+	signedMsg, msg1key, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
 
-	var entry vectors.EntryBad
-	entry.Reason = "bad previous length"
-	entry.Invalid = true
+	var entry1 vectors.EntryBad
+	entry1.Reason = "okay genesis msg"
+	entry1.Invalid = false
 
-	entry.EncodedData = fiddleWithMessage(t, signedMsg, kp.PrivateKey, func(msgFields []bencode.RawMessage) {
+	entry1.EncodedData, err = signedMsg.MarshalBencode()
+	r.NoError(err)
+
+	bc.Entries = append(bc.Entries, entry1)
+
+	// now create the offending 2nd msg
+	exMsg["i"] = 2
+	signedMsg2, _, err := enc.Encode(2, msg1key, exMsg)
+	r.NoError(err)
+
+	var entry2 vectors.EntryBad
+	entry2.Reason = "bad previous length"
+	entry2.Invalid = true
+
+	entry2.EncodedData = fiddleWithMessage(t, signedMsg2, kp.PrivateKey, func(msgFields []bencode.RawMessage) {
 		// decode to splice of the length
 		var data []byte
 		err := bencode.DecodeBytes(msgFields[2], &data)
@@ -277,36 +344,7 @@ func badPreviousLength(t *testing.T) vectors.BadCase {
 
 	})
 
-	bc.Entries = append(bc.Entries, entry)
-
-	return bc
-}
-
-func badPreviousNonZero(t *testing.T) vectors.BadCase {
-	r := require.New(t)
-
-	var bc vectors.BadCase
-
-	enc, kp := makeEncoder(t)
-	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
-
-	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test", "i": 1}
-
-	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
-	r.NoError(err)
-
-	var entry vectors.EntryBad
-	entry.Reason = "bad non zero first"
-	entry.Invalid = true
-
-	entry.EncodedData = fiddleWithMessage(t, signedMsg, kp.PrivateKey, func(msgFields []bencode.RawMessage) {
-		// overwrite zero bytes with ff's
-		ffs := bytes.Repeat([]byte{0xff}, 32)
-		copy(msgFields[2][5:], ffs)
-	})
-
-	bc.Entries = append(bc.Entries, entry)
+	bc.Entries = append(bc.Entries, entry2)
 
 	return bc
 }

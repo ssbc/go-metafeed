@@ -26,7 +26,7 @@ type EntryGood struct {
 
 	Author           refs.FeedRef
 	Sequence         int32
-	Previous         refs.MessageRef
+	Previous         *refs.MessageRef
 	Timestamp        int64
 	HighlevelContent interface{}
 	Signature        HexString
