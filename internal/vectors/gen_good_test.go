@@ -159,7 +159,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 
 	// Message 3: now let's tombstone the first subfeed
 	// ==========
-	tomb := metamngmt.NewTombstoneMessage(subKey.Feed)
+	tomb := metamngmt.NewTombstoneMessage(subKey.Feed, metaKey.Feed)
 	tomb.Tangles["metafeed"] = refs.TanglePoint{Root: &addFirstSubfeedMsg, Previous: refs.MessageRefs{addFirstSubfeedMsg}}
 
 	signedTombstoneContent, err := metafeed.SubSignContent(subKey.Secret(), tomb)
