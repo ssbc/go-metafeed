@@ -7,7 +7,6 @@
 //  - 'metafeed/add'
 //  - 'metafeed/announce'
 //  - 'metafeed/tombstone'
-
 package metamngmt
 
 import (
@@ -99,18 +98,21 @@ var (
 
 // Tombstone is used to end the lifetime of a subfeed
 type Tombstone struct {
-	Type    string       `json:"type"`
-	SubFeed refs.FeedRef `json:"subfeed"`
+	Type     string       `json:"type"`
+	SubFeed  refs.FeedRef `json:"subfeed"`
+	MetaFeed refs.FeedRef `json:"metafeed"`
 
 	Tangles refs.Tangles `json:"tangles"`
 }
 
 // NewTombstoneMessage returns a new Tombstone message.
 // Callers need to set the right tangle point themselves afterwards.
-func NewTombstoneMessage(f refs.FeedRef) Tombstone {
+func NewTombstoneMessage(sub, meta refs.FeedRef) Tombstone {
 	return Tombstone{
-		Type:    "metafeed/tombstone",
-		SubFeed: f,
+		Type: "metafeed/tombstone",
+
+		SubFeed:  sub,
+		MetaFeed: meta,
 
 		Tangles: make(refs.Tangles),
 	}
