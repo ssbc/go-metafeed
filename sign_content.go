@@ -12,6 +12,11 @@ import (
 	"go.mindeco.de/ssb-refs/tfk"
 )
 
+var (
+	// this gets prepended to the sign()/verify() input and achives domain seperation
+	inputPrefix = []byte("bendybutt")
+)
+
 // SubSignContent uses the passed private key to sign the passed content after it was encoded.
 // It then packs both fields as an array [content, signature].
 // TODO: add hmac signing
@@ -21,9 +26,11 @@ func SubSignContent(pk ed25519.PrivateKey, content bencode.Marshaler) (bencode.R
 		return nil, fmt.Errorf("SubSignContent: failed to encode content for signing: %w", err)
 	}
 
+	messageToSign := append(inputPrefix, contentBytes...)
+
 	signedValue := []interface{}{
 		bencode.RawMessage(contentBytes),
-		sign.Create(contentBytes, pk, nil), // TODO: pass hmac secret
+		sign.Create(messageToSign, pk, nil), // TODO: pass hmac secret
 	}
 
 	contentAndSig, err := bencode.EncodeBytes(signedValue)
@@ -77,7 +84,9 @@ func VerifySubSignedContent(rawMessage []byte, content bencode.Unmarshaler) erro
 		return err
 	}
 
-	verified := sign.Verify(arr[0], sigBytes, pubKey, nil) // TODO: pass hmac secret
+	messageToVerify := append(inputPrefix, arr[0]...)
+
+	verified := sign.Verify(messageToVerify, sigBytes, pubKey, nil) // TODO: pass hmac secret
 	if !verified {
 		return fmt.Errorf("VerifySubSignedContent: signature failed")
 	}
