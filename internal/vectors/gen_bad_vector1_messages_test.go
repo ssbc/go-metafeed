@@ -576,7 +576,7 @@ func makeEncoder(t *testing.T) (*metafeed.Encoder, metakeys.KeyPair) {
 	keyPairCounter++
 
 	// derive the key
-	badAuthor, err := metakeys.DeriveFromSeed(seed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	badAuthor, err := metakeys.DeriveFromSeed(seed, "badfeed", refs.RefAlgoFeedBendyButt)
 	r.NoError(err)
 
 	// create encoder for meta-feed entries
