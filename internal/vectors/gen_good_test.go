@@ -35,7 +35,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 		vectors.HexMetadata{"Seed for Metafeed KeyPair", metaSeed},
 	)
 
-	metaKey, err := metakeys.DeriveFromSeed(metaSeed, metakeys.RootLabel, refs.RefAlgoFeedBendyButt)
+	metaKey, err := metakeys.DeriveFromSeed(metaSeed, "testfeed", refs.RefAlgoFeedBendyButt)
 	r.NoError(err)
 
 	// create encoder for meta-feed entries

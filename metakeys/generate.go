@@ -19,7 +19,9 @@ import (
 const (
 	SeedLength = 64
 
-	RootLabel = "ssb-meta-feeds-v1:metafeed"
+	infoPrefix = "ssb-meta-feed-seed-v1:"
+
+	salt = "ssb"
 )
 
 // GenerateSeed returns a fresh seed of Seedlength bytes, using crypto/rand as a source
@@ -41,7 +43,7 @@ func DeriveFromSeed(seed []byte, label string, algo refs.RefAlgo) (KeyPair, erro
 	}
 
 	derived := make([]byte, ed25519.SeedSize)
-	r := hkdf.New(sha256.New, seed, nil, []byte(label))
+	r := hkdf.New(sha256.New, seed, []byte(salt), append([]byte(infoPrefix), label...))
 	_, err := r.Read(derived)
 	if err != nil {
 		return KeyPair{}, fmt.Errorf("metakeys: error deriving key: %w", err)
