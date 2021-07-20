@@ -14,6 +14,10 @@ import (
 	refs "go.mindeco.de/ssb-refs"
 )
 
+type Typed struct {
+	Type string `json:"type"`
+}
+
 // Seed is used to encrypt the seed as a private message to the main feed.
 // By doing this we allow the main feed to reconstruct the meta feed and all sub feeds from this seed.
 type Seed struct {
