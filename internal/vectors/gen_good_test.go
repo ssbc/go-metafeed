@@ -58,7 +58,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 	)
 
 	// create the subfeed keypair
-	seededLabel := "ssb-meta-feed-seed-v1:" + base64.StdEncoding.EncodeToString(nonce)
+	seededLabel := base64.StdEncoding.EncodeToString(nonce)
 	subKey, err := metakeys.DeriveFromSeed(metaSeed, seededLabel, refs.RefAlgoFeedSSB1)
 	r.NoError(err)
 	tv.Metadata = append(tv.Metadata, vectors.SubfeedAuthor{
@@ -118,7 +118,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 	)
 
 	// create the subfeed keypair
-	seededLabel = "ssb-meta-feed-seed-v1:" + base64.StdEncoding.EncodeToString(nonce2)
+	seededLabel = base64.StdEncoding.EncodeToString(nonce2)
 	subKey2, err := metakeys.DeriveFromSeed(metaSeed, seededLabel, refs.RefAlgoFeedGabby)
 	r.NoError(err)
 	tv.Metadata = append(tv.Metadata, vectors.SubfeedAuthor{
