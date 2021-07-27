@@ -19,8 +19,7 @@ var (
 
 // SubSignContent uses the passed private key to sign the passed content after it was encoded.
 // It then packs both fields as an array [content, signature].
-// TODO: add hmac signing
-func SubSignContent(pk ed25519.PrivateKey, content bencode.Marshaler) (bencode.RawMessage, error) {
+func SubSignContent(pk ed25519.PrivateKey, content bencode.Marshaler, hmacSecret *[32]byte) (bencode.RawMessage, error) {
 	contentBytes, err := content.MarshalBencode()
 	if err != nil {
 		return nil, fmt.Errorf("SubSignContent: failed to encode content for signing: %w", err)
@@ -30,7 +29,7 @@ func SubSignContent(pk ed25519.PrivateKey, content bencode.Marshaler) (bencode.R
 
 	signedValue := []interface{}{
 		bencode.RawMessage(contentBytes),
-		sign.Create(messageToSign, pk, nil), // TODO: pass hmac secret
+		sign.Create(messageToSign, pk, hmacSecret),
 	}
 
 	contentAndSig, err := bencode.EncodeBytes(signedValue)
@@ -43,8 +42,7 @@ func SubSignContent(pk ed25519.PrivateKey, content bencode.Marshaler) (bencode.R
 
 // VerifySubSignedContent expects an array of [content, signature] where 'content' needs to contain
 // a 'subfeed' field which contains the tfk encoded publickey to verify the signature.
-// TODO: add hmac signing
-func VerifySubSignedContent(rawMessage []byte, content bencode.Unmarshaler) error {
+func VerifySubSignedContent(rawMessage []byte, content bencode.Unmarshaler, hmacSecret *[32]byte) error {
 	// make sure it's an array
 	var arr []bencode.RawMessage
 	err := bencode.DecodeBytes(rawMessage, &arr)
@@ -86,7 +84,7 @@ func VerifySubSignedContent(rawMessage []byte, content bencode.Unmarshaler) erro
 
 	messageToVerify := append(inputPrefix, arr[0]...)
 
-	verified := sign.Verify(messageToVerify, sigBytes, pubKey, nil) // TODO: pass hmac secret
+	verified := sign.Verify(messageToVerify, sigBytes, pubKey, hmacSecret)
 	if !verified {
 		return fmt.Errorf("VerifySubSignedContent: signature failed")
 	}
