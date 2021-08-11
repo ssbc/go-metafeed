@@ -186,7 +186,7 @@ func badPreviousNull(t *testing.T) vectors.BadCase {
 	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
 
 	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test", "i": 1}
+	exMsg := newTestMessage(1)
 
 	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
@@ -212,7 +212,7 @@ func badPreviousType(t *testing.T) vectors.BadCase {
 	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
 
 	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test", "i": 1}
+	exMsg := newTestMessage(1)
 
 	signedMsg, msg1key, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
@@ -227,7 +227,7 @@ func badPreviousType(t *testing.T) vectors.BadCase {
 	bc.Entries = append(bc.Entries, entry1)
 
 	// now create the offending 2nd msg
-	exMsg["i"] = 2
+	exMsg = newTestMessage(2)
 	signedMsg2, _, err := enc.Encode(2, msg1key, exMsg)
 	r.NoError(err)
 
@@ -254,7 +254,7 @@ func badPreviousFormat(t *testing.T) vectors.BadCase {
 	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
 
 	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test", "i": 1}
+	exMsg := newTestMessage(1)
 
 	signedMsg, msg1key, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
@@ -269,7 +269,7 @@ func badPreviousFormat(t *testing.T) vectors.BadCase {
 	bc.Entries = append(bc.Entries, entry1)
 
 	// now create the offending 2nd msg
-	exMsg["i"] = 2
+	exMsg = newTestMessage(2)
 	signedMsg2, _, err := enc.Encode(2, msg1key, exMsg)
 	r.NoError(err)
 
@@ -296,7 +296,7 @@ func badPreviousLength(t *testing.T) vectors.BadCase {
 	enc, kp := makeEncoder(t)
 	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
 	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test", "i": 1}
+	exMsg := newTestMessage(1)
 
 	signedMsg, msg1key, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
@@ -311,7 +311,7 @@ func badPreviousLength(t *testing.T) vectors.BadCase {
 	bc.Entries = append(bc.Entries, entry1)
 
 	// now create the offending 2nd msg
-	exMsg["i"] = 2
+	exMsg = newTestMessage(2)
 	signedMsg2, _, err := enc.Encode(2, msg1key, exMsg)
 	r.NoError(err)
 
@@ -349,7 +349,7 @@ func badPreviousInvalid(t *testing.T) vectors.BadCase {
 	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
 
 	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test", "i": 1}
+	exMsg := newTestMessage(1)
 
 	signedMsg, msg1key, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
@@ -364,7 +364,7 @@ func badPreviousInvalid(t *testing.T) vectors.BadCase {
 	bc.Entries = append(bc.Entries, entry1)
 
 	// now create the offending 2nd msg
-	exMsg["i"] = 2
+	exMsg = newTestMessage(2)
 	signedMsg2, _, err := enc.Encode(2, msg1key, exMsg)
 	r.NoError(err)
 
@@ -456,7 +456,7 @@ func badSequence(t *testing.T) vectors.BadCase {
 	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
 
 	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test", "i": 1}
+	exMsg := newTestMessage(1)
 
 	signedMsg, msg1key, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
@@ -471,7 +471,7 @@ func badSequence(t *testing.T) vectors.BadCase {
 	bc.Entries = append(bc.Entries, entry1)
 
 	// now create the offending 2nd msg
-	exMsg["i"] = 2
+	exMsg = newTestMessage(2)
 	signedMsg2, _, err := enc.Encode(3, msg1key, exMsg)
 	r.NoError(err)
 
@@ -597,4 +597,13 @@ func assertValidBencode(t *testing.T, data []byte) bool {
 	var v interface{}
 	err := bencode.DecodeBytes(data, &v)
 	return a.NoError(err)
+}
+
+// not actually a proper metafeed message, it just needs to look like one
+// see https://github.com/ssb-ngi-pointer/go-metafeed/issues/18#issuecomment-896670827
+func newTestMessage(i int) []interface{} {
+	return []interface{}{
+		map[string]interface{}{"type": "test", "i": i},
+		append([]byte{0x04, 0x00}, bytes.Repeat([]byte("test-content-signature"), 5)[:64]...),
+	}
 }
