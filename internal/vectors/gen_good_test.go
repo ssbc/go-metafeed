@@ -71,12 +71,12 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
-	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg)
+	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg, nil)
 	r.NoError(err)
 
 	// make sure it's a signed add message
 	var addMsg metamngmt.Add
-	err = metafeed.VerifySubSignedContent(signedAddContent, &addMsg)
+	err = metafeed.VerifySubSignedContent(signedAddContent, &addMsg, nil)
 	r.NoError(err)
 
 	// start building the first entry for the test vector file
@@ -129,7 +129,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 	addSubFeed2Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
-	signedAdd2Content, err := metafeed.SubSignContent(subKey2.Secret(), addSubFeed2Msg)
+	signedAdd2Content, err := metafeed.SubSignContent(subKey2.Secret(), addSubFeed2Msg, nil)
 	r.NoError(err)
 
 	var tvEntry2 vectors.EntryGood
@@ -162,7 +162,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 	tomb := metamngmt.NewTombstoneMessage(subKey.Feed, metaKey.Feed)
 	tomb.Tangles["metafeed"] = refs.TanglePoint{Root: &addFirstSubfeedMsg, Previous: refs.MessageRefs{addFirstSubfeedMsg}}
 
-	signedTombstoneContent, err := metafeed.SubSignContent(subKey.Secret(), tomb)
+	signedTombstoneContent, err := metafeed.SubSignContent(subKey.Secret(), tomb, nil)
 	r.NoError(err)
 
 	var tvEntry3 vectors.EntryGood
@@ -195,7 +195,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 
 	// and that the content is a tombstone
 	var tombstone metamngmt.Tombstone
-	err = metafeed.VerifySubSignedContent(p2.Content, &tombstone)
+	err = metafeed.VerifySubSignedContent(p2.Content, &tombstone, nil)
 	r.NoError(err)
 
 	// encode and append entry three to the test vectors

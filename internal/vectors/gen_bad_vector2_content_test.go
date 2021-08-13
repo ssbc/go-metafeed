@@ -100,7 +100,7 @@ func badContentType(t *testing.T) vectors.BadCase {
 	addSubFeed1Msg.Type = "nope-nope-nope"
 
 	// now sign the add content
-	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg)
+	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg, nil)
 	r.NoError(err)
 
 	signedMsg, _, err := enc.Encode(1, zeroPrevious, signedAddContent)
@@ -141,7 +141,7 @@ func badContentSubfeedTFK(t *testing.T) vectors.BadCase {
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
-	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg)
+	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg, nil)
 	r.NoError(err)
 
 	signedMsg, _, err := enc.Encode(1, zeroPrevious, signedAddContent)
@@ -195,7 +195,7 @@ func badContentMetafeedTFK(t *testing.T) vectors.BadCase {
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
-	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg)
+	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg, nil)
 	r.NoError(err)
 
 	signedMsg, _, err := enc.Encode(1, zeroPrevious, signedAddContent)
@@ -249,7 +249,7 @@ func badContentNonceShort(t *testing.T) vectors.BadCase {
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
-	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg)
+	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg, nil)
 	r.NoError(err)
 
 	signedMsg, _, err := enc.Encode(1, zeroPrevious, signedAddContent)
@@ -303,7 +303,7 @@ func badContentNonceLonger(t *testing.T) vectors.BadCase {
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
-	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg)
+	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg, nil)
 	r.NoError(err)
 
 	signedMsg, _, err := enc.Encode(1, zeroPrevious, signedAddContent)
@@ -357,7 +357,7 @@ func badContentSignature(t *testing.T) vectors.BadCase {
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
-	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg)
+	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg, nil)
 	r.NoError(err)
 
 	signedMsg, _, err := enc.Encode(1, zeroPrevious, signedAddContent)
