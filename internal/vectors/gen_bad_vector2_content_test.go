@@ -18,6 +18,7 @@ import (
 	refs "go.mindeco.de/ssb-refs"
 
 	"github.com/ssb-ngi-pointer/go-metafeed"
+	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
 	"github.com/ssb-ngi-pointer/go-metafeed/internal/sign"
 	"github.com/ssb-ngi-pointer/go-metafeed/internal/vectors"
 	"github.com/ssb-ngi-pointer/go-metafeed/metakeys"
@@ -95,11 +96,8 @@ func badContentType(t *testing.T) vectors.BadCase {
 		Name: "subfeed1 author", Feed: subKey.Feed,
 	})
 
-	addSubFeed1Msg := metamngmt.NewAddMessage(kp.Feed, subKey.Feed, "main default", nonce)
+	addSubFeed1Msg := metamngmt.NewAddDerivedMessage(kp.Feed, subKey.Feed, "main default", nonce)
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
-
-	// invalidate the content type
-	addSubFeed1Msg.Type = "nope-nope-nope"
 
 	// now sign the add content
 	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg)
@@ -112,8 +110,21 @@ func badContentType(t *testing.T) vectors.BadCase {
 	entry.Reason = "Bad Content Type"
 	entry.Invalid = true
 
-	entry.EncodedData, err = signedMsg.MarshalBencode()
-	r.NoError(err)
+	// invalidate the content type
+	entry.EncodedData = fiddleWithContent(t, signedMsg, kp.PrivateKey, subKey.PrivateKey, func(content bencode.RawMessage) bencode.RawMessage {
+		var m map[string]bencode.RawMessage
+		err := bencode.DecodeBytes(content, &m)
+		r.NoError(err)
+
+		// invalid tfk
+		m["type"], err = bencodeext.String("nope-nope-nope").MarshalBencode()
+		r.NoError(err)
+
+		changed, err := bencode.EncodeBytes(m)
+		r.NoError(err)
+
+		return changed
+	})
 
 	bc.Entries = append(bc.Entries, entry)
 	return bc
@@ -139,7 +150,7 @@ func badContentSubfeedTFK(t *testing.T) vectors.BadCase {
 		Name: "subfeed1 author", Feed: subKey.Feed,
 	})
 
-	addSubFeed1Msg := metamngmt.NewAddMessage(kp.Feed, subKey.Feed, "main default", nonce)
+	addSubFeed1Msg := metamngmt.NewAddDerivedMessage(kp.Feed, subKey.Feed, "main default", nonce)
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
@@ -193,7 +204,7 @@ func badContentMetafeedTFK(t *testing.T) vectors.BadCase {
 		Name: "subfeed1 author", Feed: subKey.Feed,
 	})
 
-	addSubFeed1Msg := metamngmt.NewAddMessage(kp.Feed, subKey.Feed, "main default", nonce)
+	addSubFeed1Msg := metamngmt.NewAddDerivedMessage(kp.Feed, subKey.Feed, "main default", nonce)
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
@@ -247,7 +258,7 @@ func badContentNonceShort(t *testing.T) vectors.BadCase {
 		Name: "subfeed1 author", Feed: subKey.Feed,
 	})
 
-	addSubFeed1Msg := metamngmt.NewAddMessage(kp.Feed, subKey.Feed, "main default", nonce)
+	addSubFeed1Msg := metamngmt.NewAddDerivedMessage(kp.Feed, subKey.Feed, "main default", nonce)
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
@@ -301,7 +312,7 @@ func badContentNonceLonger(t *testing.T) vectors.BadCase {
 		Name: "subfeed1 author", Feed: subKey.Feed,
 	})
 
-	addSubFeed1Msg := metamngmt.NewAddMessage(kp.Feed, subKey.Feed, "main default", nonce)
+	addSubFeed1Msg := metamngmt.NewAddDerivedMessage(kp.Feed, subKey.Feed, "main default", nonce)
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
@@ -355,7 +366,7 @@ func badContentSignature(t *testing.T) vectors.BadCase {
 		Name: "subfeed1 author", Feed: subKey.Feed,
 	})
 
-	addSubFeed1Msg := metamngmt.NewAddMessage(kp.Feed, subKey.Feed, "main default", nonce)
+	addSubFeed1Msg := metamngmt.NewAddDerivedMessage(kp.Feed, subKey.Feed, "main default", nonce)
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content

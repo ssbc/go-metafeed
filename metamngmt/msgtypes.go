@@ -42,8 +42,13 @@ var (
 	_ bencode.Unmarshaler = (*Seed)(nil)
 )
 
-// Add links the new sub feed with the main (meta)feed using a new message on the meta feed signed by both the main feed and the meta feed.
-type Add struct {
+const (
+	typeAddExisting = "metafeed/add/existing"
+	typeAddDerived  = "metafeed/add/derived"
+)
+
+// AddDerived links the new sub feed with the main (meta)feed using a new message on the meta feed signed by both the main feed and the meta feed.
+type AddDerived struct {
 	Type string `json:"type"`
 
 	FeedPurpose string `json:"feedpurpose"`
@@ -56,11 +61,11 @@ type Add struct {
 	Tangles refs.Tangles `json:"tangles"`
 }
 
-// NewAddMessage just initializes type and the passed fields.
+// NewAddDerivedMessage just initializes type and the passed fields.
 // Callers need to set the right tangle point themselves afterwards.
-func NewAddMessage(meta, sub refs.FeedRef, purpose string, nonce []byte) Add {
-	return Add{
-		Type: "metafeed/add",
+func NewAddDerivedMessage(meta, sub refs.FeedRef, purpose string, nonce []byte) AddDerived {
+	return AddDerived{
+		Type: typeAddDerived,
 
 		SubFeed:  sub,
 		MetaFeed: meta,
@@ -74,8 +79,40 @@ func NewAddMessage(meta, sub refs.FeedRef, purpose string, nonce []byte) Add {
 }
 
 var (
-	_ bencode.Marshaler   = (*Add)(nil)
-	_ bencode.Unmarshaler = (*Add)(nil)
+	_ bencode.Marshaler   = (*AddDerived)(nil)
+	_ bencode.Unmarshaler = (*AddDerived)(nil)
+)
+
+// AddExisting links the new sub feed with the main (meta)feed using a new message on the meta feed signed by both the main feed and the meta feed.
+type AddExisting struct {
+	Type string `json:"type"`
+
+	FeedPurpose string `json:"feedpurpose"`
+
+	SubFeed  refs.FeedRef `json:"subfeed"`
+	MetaFeed refs.FeedRef `json:"metafeed"`
+
+	Tangles refs.Tangles `json:"tangles"`
+}
+
+// NewAddExistingMessage just initializes type and the passed fields.
+// Callers need to set the right tangle point themselves afterwards.
+func NewAddExistingMessage(meta, sub refs.FeedRef, purpose string) AddExisting {
+	return AddExisting{
+		Type: typeAddExisting,
+
+		SubFeed:  sub,
+		MetaFeed: meta,
+
+		FeedPurpose: purpose,
+
+		Tangles: make(refs.Tangles),
+	}
+}
+
+var (
+	_ bencode.Marshaler   = (*AddExisting)(nil)
+	_ bencode.Unmarshaler = (*AddExisting)(nil)
 )
 
 // Announce is used in order for existing applications to know that a feed supports meta feeds.
