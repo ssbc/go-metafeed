@@ -69,7 +69,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 
 	// Message 1: create add message
 	// ==========
-	addSubFeed1Msg := metamngmt.NewAddMessage(metaKey.Feed, subKey.Feed, "main default", nonce)
+	addSubFeed1Msg := metamngmt.NewAddDerivedMessage(metaKey.Feed, subKey.Feed, "main default", nonce)
 	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
@@ -77,7 +77,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 	r.NoError(err)
 
 	// make sure it's a signed add message
-	var addMsg metamngmt.Add
+	var addMsg metamngmt.AddDerived
 	err = metafeed.VerifySubSignedContent(signedAddContent, &addMsg)
 	r.NoError(err)
 
@@ -127,7 +127,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 		Name: "subfeed2 author", Feed: subKey2.Feed,
 	})
 
-	addSubFeed2Msg := metamngmt.NewAddMessage(metaKey.Feed, subKey2.Feed, "experimental", nonce2)
+	addSubFeed2Msg := metamngmt.NewAddDerivedMessage(metaKey.Feed, subKey2.Feed, "experimental", nonce2)
 	addSubFeed2Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
 
 	// now sign the add content
@@ -205,6 +205,66 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 	r.NoError(err)
 	tvEntry3.EncodedData = encoded
 	tv.Entries = append(tv.Entries, tvEntry3)
+
+	// message 4: adding an existing feed
+	// ==========
+	existingFeedKeyPair, err := metakeys.DeriveFromSeed(
+		bytes.Repeat([]byte("ohai"), 8),
+		"a pre existing feed",
+		refs.RefAlgoFeedBamboo,
+	) // let's pretended like this is a normal ssb keypair for a second (how would you know just from public and private parts?)
+	r.NoError(err)
+
+	tv.Metadata = append(tv.Metadata, vectors.SubfeedAuthor{
+		Name: "existing subfeed author", Feed: existingFeedKeyPair.Feed,
+	})
+
+	addExisting := metamngmt.NewAddExistingMessage(metaKey.Feed, existingFeedKeyPair.Feed, "metafeed upgrade of existing")
+	addExisting.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil}
+
+	signedAddExstingContent, err := metafeed.SubSignContent(existingFeedKeyPair.Secret(), addExisting)
+	r.NoError(err)
+
+	var tvEntry4 vectors.EntryGood
+	tvEntry4.Author = metaKey.Feed
+	tvEntry4.Previous = &msg3Key
+	tvEntry4.Sequence = 4
+	tvEntry4.Timestamp = 0
+	tvEntry4.HighlevelContent = []interface{}{
+		addExisting,
+		vectors.HexMetadata{
+			Name:      "subfeed signature",
+			HexString: assertSubsignedAndGetSignatureBytes(t, signedAddExstingContent),
+		},
+	}
+
+	// encode and sign the entry
+	signedAddExistingMessage, msg4Key, err := enc.Encode(4, msg3Key, signedAddExstingContent)
+	r.NoError(err)
+	tvEntry4.Key = msg4Key
+	tvEntry4.Signature = signedAddExistingMessage.Signature
+
+	// assert the signed content is signed correctly
+	valid = signedAddExistingMessage.Verify(nil)
+	r.True(valid)
+
+	// that it contains a payload
+	var p3 metafeed.Payload
+	err = p3.UnmarshalBencode(signedAddExistingMessage.Data)
+	r.NoError(err)
+
+	// and that the content is as intended
+	var addExistingContent metamngmt.AddExisting
+	err = metafeed.VerifySubSignedContent(p3.Content, &addExistingContent)
+	r.NoError(err)
+
+	r.Equal(addExisting.SubFeed.Ref(), existingFeedKeyPair.Feed.Ref(), "not about the intended feed")
+
+	// encode and append entry three to the test vectors
+	encoded, err = signedAddExistingMessage.MarshalBencode()
+	r.NoError(err)
+	tvEntry4.EncodedData = encoded
+	tv.Entries = append(tv.Entries, tvEntry4)
 
 	// finally, create the test vector file
 	vectorFile, err := os.OpenFile("../../testvector-metafeed-managment.json", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
