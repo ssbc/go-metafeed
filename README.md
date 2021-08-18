@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2021 The go-metafeed Authors
+
+SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # go-metafeeds
 
 This [Go](https://golang.org) module implements the [bendy butt specification](https://github.com/ssb-ngi-pointer/bendy-butt-spec/) to encode and verify feed entries in that format and offers utility functions for creating and verifiying signed content entries as required by the [meta feed spec](https://github.com/ssb-ngi-pointer/ssb-meta-feed-spec).
