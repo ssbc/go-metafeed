@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2021 The go-metafeed Authors
+//
 // SPDX-License-Identifier: MIT
 
 // Package metamngmt contains all the managment types that one needs to have in order to work with metafeeds.
