@@ -20,7 +20,7 @@ type wrappedAddDerived struct {
 	SubFeed  []byte `bencode:"subfeed"`
 	MetaFeed []byte `bencode:"metafeed"`
 
-	Nonce []byte `bencode:"nonce"`
+	Nonce bencodeext.Bytes `bencode:"nonce"`
 
 	Tangles bencodeext.Tangles `bencode:"tangles"`
 }
@@ -53,7 +53,7 @@ func (a AddDerived) MarshalBencode() ([]byte, error) {
 		FeedPurpose: bencodeext.String(a.FeedPurpose),
 		SubFeed:     sfBytes,
 		MetaFeed:    mfBytes,
-		Nonce:       a.Nonce,
+		Nonce:       bencodeext.Bytes(a.Nonce),
 		Tangles:     tanglesToBencoded(a.Tangles),
 	}
 

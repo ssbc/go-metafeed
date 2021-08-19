@@ -56,7 +56,7 @@ type AddDerived struct {
 	SubFeed  refs.FeedRef `json:"subfeed"`
 	MetaFeed refs.FeedRef `json:"metafeed"`
 
-	Nonce Base64String `json:"nonce"`
+	Nonce []byte `json:"nonce"`
 
 	Tangles refs.Tangles `json:"tangles"`
 }
