@@ -56,10 +56,10 @@ func TestGenerateTestVectorBWithInvalidContent(t *testing.T) {
 	}
 
 	// make sure each entry is valid bencode data at least
-	for ci, c := range tv.Cases {
-		for ei, e := range c.Entries {
+	for _, c := range tv.Cases {
+		for _, e := range c.Entries {
 			if !assertValidBencode(t, e.EncodedData) {
-				t.Logf("invalid bencode data in case %d - entry %d: %s", ci, ei, e.Reason)
+				t.Logf("invalid bencode data in %s: %s", c.Description, e.Reason)
 				t.Logf("\n%s", hex.Dump(e.EncodedData))
 				t.Log(hex.EncodeToString(e.EncodedData))
 			}
@@ -118,7 +118,7 @@ func badContentType(t *testing.T) vectors.BadCase {
 		err := bencode.DecodeBytes(content, &m)
 		r.NoError(err)
 
-		// invalid tfk
+		// invalid type value
 		m["type"], err = bencodeext.String("nope-nope-nope").MarshalBencode()
 		r.NoError(err)
 
@@ -280,9 +280,12 @@ func badContentNonceShort(t *testing.T) vectors.BadCase {
 		err := bencode.DecodeBytes(content, &m)
 		r.NoError(err)
 
+		n := m["nonce"]
+		t.Logf("\n%s", hex.Dump(n)) // before the change
+
 		// chop of one byte and fix the length
-		m["nonce"] = m["nonce"][:34]
-		m["nonce"][1] = 0x31
+		m["nonce"] = n[:len(n)-1]
+		m["nonce"][1] = 0x33
 
 		changed, err := bencode.EncodeBytes(m)
 		r.NoError(err)
@@ -334,9 +337,13 @@ func badContentNonceLonger(t *testing.T) vectors.BadCase {
 		err := bencode.DecodeBytes(content, &m)
 		r.NoError(err)
 
+		n := m["nonce"]
+		// before the change
+		t.Logf("\n%s", hex.Dump(n))
+
 		// add two bytes and fix the length
-		m["nonce"] = append(m["nonce"], byte(0x01), byte(0x02))
-		m["nonce"][1] = 0x34
+		m["nonce"] = append(n, byte(0x01), byte(0x02))
+		m["nonce"][1] = 0x36
 
 		changed, err := bencode.EncodeBytes(m)
 		r.NoError(err)
