@@ -70,7 +70,9 @@ func TestGenerateTestVectorBWithInvalidContent(t *testing.T) {
 	vectorFile, err := os.OpenFile("../../testvector-metafeed-bad-content.json", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	r.NoError(err)
 
-	err = json.NewEncoder(vectorFile).Encode(tv)
+	jsonEncoder := json.NewEncoder(vectorFile)
+	jsonEncoder.SetIndent("", "  ")
+	err = jsonEncoder.Encode(tv)
 	r.NoError(err)
 
 	r.NoError(vectorFile.Close())
