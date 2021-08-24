@@ -43,6 +43,7 @@ func TestGenerateTestVectorBWithInvalidContent(t *testing.T) {
 		{"2.1: broken subfeed TFK", badContentSubfeedTFK},
 		{"2.2: broken metafeed TFK", badContentMetafeedTFK},
 
+		{"3.1: bad nonce prefix", badContentNoncePrefix},
 		{"3.2: bad nonce length (short)", badContentNonceShort},
 		{"3.3: bad nonce length (long)", badContentNonceLonger},
 
@@ -229,6 +230,65 @@ func badContentMetafeedTFK(t *testing.T) vectors.BadCase {
 		// invalid tfk
 		m["metafeed"][3] = 0xff
 		m["metafeed"][4] = 0xff
+
+		changed, err := bencode.EncodeBytes(m)
+		r.NoError(err)
+
+		return changed
+	})
+
+	bc.Entries = append(bc.Entries, entry)
+	return bc
+}
+
+func badContentNoncePrefix(t *testing.T) vectors.BadCase {
+	var bc vectors.BadCase
+	r := require.New(t)
+
+	enc, kp := makeEncoder(t)
+	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
+
+	var nonce = bytes.Repeat([]byte{161}, 32)
+	bc.Metadata = append(bc.Metadata,
+		vectors.HexMetadata{"subfeed nonce", nonce},
+	)
+
+	// create the subfeed keypair
+	seededLabel := "ssb-meta-feed-seed-v1:" + base64.StdEncoding.EncodeToString(nonce)
+	subKey, err := metakeys.DeriveFromSeed(kp.Seed, seededLabel, refs.RefAlgoFeedSSB1)
+	r.NoError(err)
+	bc.Metadata = append(bc.Metadata, vectors.SubfeedAuthor{
+		Name: "subfeed author", Feed: subKey.Feed,
+	})
+
+	addSubFeed1Msg := metamngmt.NewAddDerivedMessage(kp.Feed, subKey.Feed, "main default", nonce)
+	addSubFeed1Msg.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil} // initial
+
+	// now sign the add content
+	signedAddContent, err := metafeed.SubSignContent(subKey.Secret(), addSubFeed1Msg)
+	r.NoError(err)
+
+	signedMsg, _, err := enc.Encode(1, zeroPrevious, signedAddContent)
+	r.NoError(err)
+
+	var entry vectors.EntryBad
+	entry.Reason = "Bad subfeed"
+	entry.Invalid = true
+
+	entry.EncodedData = fiddleWithContent(t, signedMsg, kp.PrivateKey, subKey.PrivateKey, func(content bencode.RawMessage) bencode.RawMessage {
+
+		var m map[string]bencode.RawMessage
+		err := bencode.DecodeBytes(content, &m)
+		r.NoError(err)
+
+		n := m["nonce"]
+		t.Logf("\n%s", hex.Dump(n)) // before the change
+
+		// change the correct 0x0603 prefix to something borked
+		m["nonce"][3] = 0xaa
+		m["nonce"][4] = 0xbb
+
+		t.Logf("\n%s", hex.Dump(n)) // before the change
 
 		changed, err := bencode.EncodeBytes(m)
 		r.NoError(err)
