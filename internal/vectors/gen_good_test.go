@@ -258,7 +258,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 	err = metafeed.VerifySubSignedContent(p3.Content, &addExistingContent)
 	r.NoError(err)
 
-	r.Equal(addExisting.SubFeed.Ref(), existingFeedKeyPair.Feed.Ref(), "not about the intended feed")
+	r.Equal(addExisting.SubFeed.Sigil(), existingFeedKeyPair.Feed.Sigil(), "not about the intended feed")
 
 	// encode and append entry three to the test vectors
 	encoded, err = signedAddExistingMessage.MarshalBencode()
