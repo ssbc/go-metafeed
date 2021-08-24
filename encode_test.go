@@ -57,7 +57,7 @@ func TestEncoder(t *testing.T) {
 	startTime = time.Date(1969, 12, 31, 23, 59, 55, 0, time.UTC).Unix()
 	now = fakeNow
 
-	t.Log("kp:", authorRef.Ref())
+	t.Log("kp:", authorRef.Sigil())
 
 	var msgs = []interface{}{
 		append([]byte{0x03, 0x02}, []byte("s01mBytzLikeBox2")...),
@@ -67,7 +67,7 @@ func TestEncoder(t *testing.T) {
 		},
 		map[string]interface{}{
 			"type":       "contact",
-			"contact":    authorRef.Ref(),
+			"contact":    authorRef.Sigil(),
 			"spectating": true,
 		},
 	}

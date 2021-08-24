@@ -47,7 +47,7 @@ func TestDeriveFromSeed(t *testing.T) {
 		r.NoError(err)
 
 		wantRef := "@0hyf48bX1JcGxGvwiMXzmEWodZvJZvDXxPiKhq3QlSw=.bbfeed-v1"
-		r.Equal(kp.Feed.Ref(), wantRef)
+		r.Equal(kp.Feed.Sigil(), wantRef)
 	})
 
 	t.Run("some nonce", func(t *testing.T) {
@@ -58,6 +58,6 @@ func TestDeriveFromSeed(t *testing.T) {
 		r.NoError(err)
 
 		wantRef := "@nFiLP62RZCGHCtmXScWERRxAJyTdWudAgPXODHATTgE=.ed25519"
-		r.Equal(kp.Feed.Ref(), wantRef)
+		r.Equal(kp.Feed.Sigil(), wantRef)
 	})
 }

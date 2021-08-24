@@ -110,7 +110,7 @@ func TestDecodeEntry(t *testing.T) {
 	r.NoError(err)
 
 	got := fmt.Sprintln()
-	got += fmt.Sprintln("Author:", ee.Author.Ref())
+	got += fmt.Sprintln("Author:", ee.Author.Sigil())
 	got += fmt.Sprintln("Seq:", ee.Sequence)
 	got += fmt.Sprintln("Previous:", ee.Previous)
 	got += fmt.Sprintln("Timestamp:", ee.Timestamp.UTC().String())
