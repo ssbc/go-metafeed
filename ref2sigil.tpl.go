@@ -1,6 +1,7 @@
-package p
-
+//go:build ignore
 // +build ignore
+
+package p
 
 import (
 	refs "go.mindeco.de/ssb-refs"
