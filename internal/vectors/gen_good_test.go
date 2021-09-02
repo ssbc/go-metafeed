@@ -211,7 +211,7 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 	existingFeedKeyPair, err := metakeys.DeriveFromSeed(
 		bytes.Repeat([]byte("ohai"), 8),
 		"a pre existing feed",
-		refs.RefAlgoFeedBamboo,
+		refs.RefAlgoFeedGabby,
 	) // let's pretended like this is a normal ssb keypair for a second (how would you know just from public and private parts?)
 	r.NoError(err)
 
