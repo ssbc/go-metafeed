@@ -46,7 +46,7 @@ func TestDeriveFromSeed(t *testing.T) {
 		kp, err := metakeys.DeriveFromSeed(testSeed, testLabel, algo)
 		r.NoError(err)
 
-		wantRef := "@0hyf48bX1JcGxGvwiMXzmEWodZvJZvDXxPiKhq3QlSw=.bbfeed-v1"
+		wantRef := "@0hyf48bX1JcGxGvwiMXzmEWodZvJZvDXxPiKhq3QlSw=.bendybutt-v1"
 		r.Equal(kp.Feed.Sigil(), wantRef)
 	})
 

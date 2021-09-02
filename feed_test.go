@@ -117,7 +117,7 @@ func TestDecodeEntry(t *testing.T) {
 	got += fmt.Sprintf("Content: %q", string(ee.Content))
 
 	want := `
-Author: @AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=.bbfeed-v1
+Author: @AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=.bendybutt-v1
 Seq: 1
 Previous: <nil>
 Timestamp: 1970-01-01 00:00:10 +0000 UTC
