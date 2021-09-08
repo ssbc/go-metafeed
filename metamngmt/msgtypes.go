@@ -97,6 +97,18 @@ type AddExisting struct {
 
 // NewAddExistingMessage just initializes type and the passed fields.
 // Callers need to set the right tangle point themselves afterwards.
+//
+// Format of the message (in Bendy Butt binary notation, see https://github.com/ssb-ngi-pointer/bendy-butt-spec): 
+//  "type" => "metafeed/add/existing",
+//  "feedpurpose" => "main",
+//  "subfeed" => (BFE-encoded feed ID for the 'main' feed),
+//  "metafeed" => (BFE-encoded Bendy Butt feed ID for the meta feed),
+//  "tangles" => {
+//    "metafeed" => {
+//      "root" => (BFE nil),
+//      "previous" => (BFE nil)
+//    }
+//  }
 func NewAddExistingMessage(meta, sub refs.FeedRef, purpose string) AddExisting {
 	return AddExisting{
 		Type: typeAddExisting,
@@ -124,11 +136,23 @@ type Announce struct {
 }
 
 // NewAnnounceMessage returns a new Announce message.
-// Callers need to set the right tangle point themselves afterwards.
-func NewAnnounceMessage(f refs.FeedRef) Announce {
+// Callers need to set the right tangle point themselves afterwards. Message structure for the announcement:
+//
+// 	content: {
+// 	  type: 'metafeed/announce',
+// 	  metafeed: 'ssb:feed/bendybutt-v1/-oaWWDs8g73EZFUMfW37R_ULtFEjwKN_DczvdYihjbU=',
+// 	  tangles: {
+// 	  	metafeed: {
+// 	  		root: null,
+// 	  		previous: null
+// 	  	}
+// 	  }
+//  }
+func NewAnnounceMessage(mf refs.FeedRef) Announce {
+	// TODO: sign message using mf secret
 	return Announce{
 		Type:     "metafeed/announce",
-		MetaFeed: f,
+		MetaFeed: mf,
 
 		Tangles: make(refs.Tangles),
 	}
