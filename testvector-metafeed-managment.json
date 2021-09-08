@@ -24,6 +24,10 @@
     {
       "Name": "existing subfeed author",
       "Feed": "ssb:feed/gabbygrove-v1/4x4183TbjTA46ROc5Uj9FmtE-H2bFVVeGjQzGwdlZCw="
+    },
+    {
+      "Name": "existing subfeed nonce",
+      "HexString": "6f6861696f6861696f6861696f6861696f6861696f6861696f6861696f686169"
     }
   ],
   "Entries": [

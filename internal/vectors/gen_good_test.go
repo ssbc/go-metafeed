@@ -21,6 +21,10 @@ import (
 	refs "go.mindeco.de/ssb-refs"
 )
 
+// TODO:
+// rework metadata to have seed on the entries
+// reuse strucutre from bad vectors
+
 func TestGenerateMetaFeedManagment(t *testing.T) {
 	r := require.New(t)
 
@@ -208,16 +212,23 @@ func TestGenerateMetaFeedManagment(t *testing.T) {
 
 	// message 4: adding an existing feed
 	// ==========
+	existingFeedKeyPairSeed := bytes.Repeat([]byte("ohai"), 8)
 	existingFeedKeyPair, err := metakeys.DeriveFromSeed(
-		bytes.Repeat([]byte("ohai"), 8),
+		existingFeedKeyPairSeed,
 		"a pre existing feed",
 		refs.RefAlgoFeedGabby,
 	) // let's pretended like this is a normal ssb keypair for a second (how would you know just from public and private parts?)
 	r.NoError(err)
 
-	tv.Metadata = append(tv.Metadata, vectors.SubfeedAuthor{
-		Name: "existing subfeed author", Feed: existingFeedKeyPair.Feed,
-	})
+	tv.Metadata = append(tv.Metadata,
+		vectors.SubfeedAuthor{
+			Name: "existing subfeed author", Feed: existingFeedKeyPair.Feed,
+		},
+		vectors.HexMetadata{
+			Name:      "existing subfeed nonce",
+			HexString: existingFeedKeyPairSeed,
+		},
+	)
 
 	addExisting := metamngmt.NewAddExistingMessage(metaKey.Feed, existingFeedKeyPair.Feed, "metafeed upgrade of existing")
 	addExisting.Tangles["metafeed"] = refs.TanglePoint{Root: nil, Previous: nil}
