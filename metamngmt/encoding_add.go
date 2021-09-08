@@ -23,6 +23,9 @@ type wrappedAddDerived struct {
 	Nonce bencodeext.Bytes `bencode:"nonce"`
 
 	Tangles bencodeext.Tangles `bencode:"tangles"`
+
+	// querylang *string `bencode:"querylang,omitempty"`
+	// query *string `query:"metafeed,omitempty"`
 }
 
 // MarshalBencode turns an add Message into bencode bytes,
