@@ -19,6 +19,7 @@ import (
 	"github.com/zeebo/bencode"
 
 	"github.com/ssb-ngi-pointer/go-metafeed"
+	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
 	"github.com/ssb-ngi-pointer/go-metafeed/internal/sign"
 	"github.com/ssb-ngi-pointer/go-metafeed/internal/vectors"
 	"github.com/ssb-ngi-pointer/go-metafeed/metakeys"
@@ -96,7 +97,7 @@ func badAuthorType(t *testing.T) vectors.BadCase {
 	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
 
 	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test"}
+	exMsg := map[string]interface{}{"type": bencodeext.String("test")}
 
 	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
@@ -123,7 +124,7 @@ func badAuthorFormat(t *testing.T) vectors.BadCase {
 	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
 
 	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test"}
+	exMsg := map[string]interface{}{"type": bencodeext.String("test")}
 
 	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
@@ -152,7 +153,7 @@ func badAuthorLength(t *testing.T) vectors.BadCase {
 	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
 
 	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test"}
+	exMsg := map[string]interface{}{"type": bencodeext.String("test")}
 
 	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
@@ -396,7 +397,7 @@ func invalidSignatureMarkers(t *testing.T) vectors.BadCase {
 	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
 
 	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test"}
+	exMsg := map[string]interface{}{"type": bencodeext.String("test")}
 
 	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
@@ -427,7 +428,7 @@ func brokenSignature(t *testing.T) vectors.BadCase {
 	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
 
 	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test"}
+	exMsg := map[string]interface{}{"type": bencodeext.String("test")}
 
 	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
@@ -500,7 +501,7 @@ func tooLongMessage(t *testing.T) vectors.BadCase {
 	bc.Metadata = append(bc.Metadata, vectors.HexMetadata{"KeyPair Seed", kp.Seed})
 
 	// the content is not important for this case
-	exMsg := map[string]interface{}{"type": "test"}
+	exMsg := map[string]interface{}{"type": bencodeext.String("test")}
 
 	signedMsg, _, err := enc.Encode(1, zeroPrevious, exMsg)
 	r.NoError(err)
@@ -607,7 +608,7 @@ func assertValidBencode(t *testing.T, data []byte) bool {
 // see https://github.com/ssb-ngi-pointer/go-metafeed/issues/18#issuecomment-896670827
 func newTestMessage(i int) []interface{} {
 	return []interface{}{
-		map[string]interface{}{"type": "test", "i": i},
+		map[string]interface{}{"type": bencodeext.String("test"), "i": i},
 		append([]byte{0x04, 0x00}, bytes.Repeat([]byte("test-content-signature"), 5)[:64]...),
 	}
 }
