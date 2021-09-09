@@ -14,6 +14,7 @@ package metamngmt
 import (
 	"github.com/zeebo/bencode"
 	refs "go.mindeco.de/ssb-refs"
+	"fmt"
 )
 
 type Typed struct {
@@ -59,10 +60,13 @@ type AddDerived struct {
 	Nonce []byte `json:"nonce"`
 
 	Tangles refs.Tangles `json:"tangles"`
+	QueryLang string `json:"querylang"`
+	Query string `json:"query"`
 }
 
 // NewAddDerivedMessage just initializes type and the passed fields.
-// Callers need to set the right tangle point themselves afterwards.
+// Callers need to set the right tangle point themselves afterwards. If the message has metadata that needs to be added,
+// function AddDerived.InsertMetadata should be used.
 func NewAddDerivedMessage(meta, sub refs.FeedRef, purpose string, nonce []byte) AddDerived {
 	return AddDerived{
 		Type: typeAddDerived,
@@ -76,6 +80,23 @@ func NewAddDerivedMessage(meta, sub refs.FeedRef, purpose string, nonce []byte) 
 
 		Tangles: make(refs.Tangles),
 	}
+}
+
+// InsertMetadata enhances an existing AddDerived message with metadata, returning an error if the passed metadata
+// contains an unsupported key.
+func (derived *AddDerived) InsertMetadata (metadata map[string]string) error {
+	// attach any metadata (e.g. query info used in for index feeds), if any
+	for key, value := range metadata {
+		switch (key) {
+		case "querylang":
+			derived.QueryLang = value
+		case "query":
+			derived.Query = value
+		default:
+			return fmt.Errorf("AddDerived does not support metadata key: %s", key)
+		}
+	}
+	return nil
 }
 
 var (

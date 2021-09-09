@@ -24,8 +24,8 @@ type wrappedAddDerived struct {
 
 	Tangles bencodeext.Tangles `bencode:"tangles"`
 
-	// querylang *string `bencode:"querylang,omitempty"`
-	// query *string `query:"metafeed,omitempty"`
+	QueryLang bencodeext.String `bencode:"querylang,omitempty"`
+	Query bencodeext.String `bencode:"query,omitempty"`
 }
 
 // MarshalBencode turns an add Message into bencode bytes,
@@ -58,6 +58,8 @@ func (a AddDerived) MarshalBencode() ([]byte, error) {
 		MetaFeed:    mfBytes,
 		Nonce:       bencodeext.Bytes(a.Nonce),
 		Tangles:     tanglesToBencoded(a.Tangles),
+		QueryLang: bencodeext.String(a.QueryLang),
+		Query: bencodeext.String(a.Query),
 	}
 
 	return bencode.EncodeBytes(value)
@@ -90,6 +92,8 @@ func (a *AddDerived) UnmarshalBencode(input []byte) error {
 	a.Type = msgType
 
 	a.FeedPurpose = string(wa.FeedPurpose)
+	a.QueryLang = string(wa.QueryLang)
+	a.Query = string(wa.Query)
 
 	a.SubFeed, err = subFeed.Feed()
 	if err != nil {
