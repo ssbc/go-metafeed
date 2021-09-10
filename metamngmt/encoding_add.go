@@ -25,14 +25,14 @@ type wrappedAddDerived struct {
 	Tangles bencodeext.Tangles `bencode:"tangles"`
 
 	QueryLang bencodeext.String `bencode:"querylang,omitempty"`
-	Query bencodeext.String `bencode:"query,omitempty"`
+	Query     bencodeext.String `bencode:"query,omitempty"`
 }
 
 // MarshalBencode turns an add Message into bencode bytes,
 // using the bencode extenstions to cleanly seperate different types of string data
-func (a AddDerived) MarshalBencode() ([]byte, error) {
+func (derived AddDerived) MarshalBencode() ([]byte, error) {
 	// create TFK values for sub- and meta-feed
-	subFeedTFK, err := tfk.FeedFromRef(a.SubFeed)
+	subFeedTFK, err := tfk.FeedFromRef(derived.SubFeed)
 	if err != nil {
 		return nil, fmt.Errorf("metafeed/add: failed to turn subfeed into tfk: %w", err)
 	}
@@ -41,7 +41,7 @@ func (a AddDerived) MarshalBencode() ([]byte, error) {
 		return nil, fmt.Errorf("metafeed/add: failed to encode tfk subfeed: %w", err)
 	}
 
-	metaFeedTFK, err := tfk.FeedFromRef(a.MetaFeed)
+	metaFeedTFK, err := tfk.FeedFromRef(derived.MetaFeed)
 	if err != nil {
 		return nil, fmt.Errorf("metafeed/add: failed to turn metafeed into tfk: %w", err)
 	}
@@ -49,17 +49,24 @@ func (a AddDerived) MarshalBencode() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("metafeed/add: failed to encode tfk metafeed: %w", err)
 	}
+	var querylang, query string
+	if val, has := derived.GetMetadata("querylang"); has {
+		querylang = val
+	}
+	if val, has := derived.GetMetadata("query"); has {
+		query = val
+	}
 
 	// now create a map of all the values and let the bencode lib sort it
 	var value = wrappedAddDerived{
 		Type:        bencodeext.String(typeAddDerived),
-		FeedPurpose: bencodeext.String(a.FeedPurpose),
+		FeedPurpose: bencodeext.String(derived.FeedPurpose),
 		SubFeed:     sfBytes,
 		MetaFeed:    mfBytes,
-		Nonce:       bencodeext.Bytes(a.Nonce),
-		Tangles:     tanglesToBencoded(a.Tangles),
-		QueryLang: bencodeext.String(a.QueryLang),
-		Query: bencodeext.String(a.Query),
+		Nonce:       bencodeext.Bytes(derived.Nonce),
+		Tangles:     tanglesToBencoded(derived.Tangles),
+		QueryLang:   bencodeext.String(querylang),
+		Query:       bencodeext.String(query),
 	}
 
 	return bencode.EncodeBytes(value)
@@ -92,8 +99,13 @@ func (a *AddDerived) UnmarshalBencode(input []byte) error {
 	a.Type = msgType
 
 	a.FeedPurpose = string(wa.FeedPurpose)
-	a.QueryLang = string(wa.QueryLang)
-	a.Query = string(wa.Query)
+	err = a.InsertMetadata(map[string]string{
+		"querylang": string(wa.QueryLang),
+		"query":     string(wa.Query),
+	})
+	if err != nil {
+		return fmt.Errorf("metafeed/add: failed to insert query metadata into message: %w", err)
+	}
 
 	a.SubFeed, err = subFeed.Feed()
 	if err != nil {

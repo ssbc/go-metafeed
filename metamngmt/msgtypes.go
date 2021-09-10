@@ -12,9 +12,9 @@
 package metamngmt
 
 import (
+	"fmt"
 	"github.com/zeebo/bencode"
 	refs "go.mindeco.de/ssb-refs"
-	"fmt"
 )
 
 type Typed struct {
@@ -60,8 +60,8 @@ type AddDerived struct {
 	Nonce []byte `json:"nonce"`
 
 	Tangles refs.Tangles `json:"tangles"`
-	QueryLang string `json:"querylang"`
-	Query string `json:"query"`
+
+	metadata map[string]string
 }
 
 // NewAddDerivedMessage just initializes type and the passed fields.
@@ -79,24 +79,36 @@ func NewAddDerivedMessage(meta, sub refs.FeedRef, purpose string, nonce []byte) 
 		Nonce: nonce,
 
 		Tangles: make(refs.Tangles),
+
+		metadata: make(map[string]string),
 	}
 }
 
 // InsertMetadata enhances an existing AddDerived message with metadata, returning an error if the passed metadata
 // contains an unsupported key.
-func (derived *AddDerived) InsertMetadata (metadata map[string]string) error {
+func (derived *AddDerived) InsertMetadata(metadata map[string]string) error {
+	if derived.metadata == nil {
+		derived.metadata = make(map[string]string)
+	}
 	// attach any metadata (e.g. query info used in for index feeds), if any
 	for key, value := range metadata {
-		switch (key) {
-		case "querylang":
-			derived.QueryLang = value
-		case "query":
-			derived.Query = value
+		switch key {
+		case "querylang", "query":
+			// copy key + value from passed in map
+			derived.metadata[key] = value
 		default:
 			return fmt.Errorf("AddDerived does not support metadata key: %s", key)
 		}
 	}
 	return nil
+}
+
+func (derived *AddDerived) GetMetadata(key string) (string, bool) {
+	if derived.metadata == nil {
+		return "", false
+	}
+	val, has := derived.metadata[key]
+	return val, has
 }
 
 var (
@@ -119,7 +131,7 @@ type AddExisting struct {
 // NewAddExistingMessage just initializes type and the passed fields.
 // Callers need to set the right tangle point themselves afterwards.
 //
-// Format of the message (in Bendy Butt binary notation, see https://github.com/ssb-ngi-pointer/bendy-butt-spec): 
+// Format of the message (in Bendy Butt binary notation, see https://github.com/ssb-ngi-pointer/bendy-butt-spec):
 //  "type" => "metafeed/add/existing",
 //  "feedpurpose" => "main",
 //  "subfeed" => (BFE-encoded feed ID for the 'main' feed),

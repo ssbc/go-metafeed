@@ -41,12 +41,13 @@ func TestAddDerivedWithMetadata(t *testing.T) {
 	r.NoError(err)
 
 	feedpurpose := "test"
-	// create an metafeed/add/derived message that contains query metadata
-	addMsg := NewAddDerivedMessage(mf, feed, feedpurpose, []byte("asdasdasd"))
 	metadata := map[string]string{
 		"querylang": "ql-0",
 		"query":     "somejson",
 	}
+	// create an metafeed/add/derived message that contains query metadata
+	addMsg := NewAddDerivedMessage(mf, feed, feedpurpose, []byte("asdasdasd"))
+	r.NoError(err)
 	err = addMsg.InsertMetadata(metadata)
 	r.NoError(err)
 
@@ -63,7 +64,25 @@ func TestAddDerivedWithMetadata(t *testing.T) {
 	err = decodedAddMsg.UnmarshalBencode(got)
 	r.NoError(err)
 
+	decodedQuery, has := decodedAddMsg.GetMetadata("query")
+	r.True(has)
+
+	decodedQueryLang, has := decodedAddMsg.GetMetadata("querylang")
+	r.True(has)
+
 	r.Equal(feedpurpose, decodedAddMsg.FeedPurpose, "error when decoding derived.purpose")
-	r.Equal(metadata["query"], decodedAddMsg.Query, "error when decoding derived.query")
-	r.Equal(metadata["querylang"], decodedAddMsg.QueryLang, "error when decoding derived.querylang")
+	r.Equal(metadata["query"], decodedQuery, "error when decoding derived.query")
+	r.Equal(metadata["querylang"], decodedQueryLang, "error when decoding derived.querylang")
+
+	// empty message works as intended
+	var emptyAddMsg AddDerived
+	val, has := emptyAddMsg.GetMetadata("query")
+	r.EqualValues("", val)
+	r.False(has)
+
+	// inserting unsupported metadata returns error
+	err = addMsg.InsertMetadata(map[string]string{
+		"poopy string": "invalid shit",
+	})
+	r.Error(err)
 }
