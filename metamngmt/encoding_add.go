@@ -49,13 +49,6 @@ func (derived AddDerived) MarshalBencode() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("metafeed/add: failed to encode tfk metafeed: %w", err)
 	}
-	var querylang, query string
-	if val, has := derived.GetMetadata("querylang"); has {
-		querylang = val
-	}
-	if val, has := derived.GetMetadata("query"); has {
-		query = val
-	}
 
 	// now create a map of all the values and let the bencode lib sort it
 	var value = wrappedAddDerived{
@@ -65,8 +58,15 @@ func (derived AddDerived) MarshalBencode() ([]byte, error) {
 		MetaFeed:    mfBytes,
 		Nonce:       bencodeext.Bytes(derived.Nonce),
 		Tangles:     tanglesToBencoded(derived.Tangles),
-		QueryLang:   bencodeext.String(querylang),
-		Query:       bencodeext.String(query),
+	}
+
+	// add optional values
+	if val, has := derived.GetMetadata("querylang"); has {
+		value.QueryLang = bencodeext.String(val)
+	}
+
+	if val, has := derived.GetMetadata("query"); has {
+		value.Query = bencodeext.String(val)
 	}
 
 	return bencode.EncodeBytes(value)
