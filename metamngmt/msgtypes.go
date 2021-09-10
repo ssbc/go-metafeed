@@ -12,6 +12,7 @@
 package metamngmt
 
 import (
+	"fmt"
 	"github.com/zeebo/bencode"
 	refs "go.mindeco.de/ssb-refs"
 )
@@ -59,10 +60,13 @@ type AddDerived struct {
 	Nonce []byte `json:"nonce"`
 
 	Tangles refs.Tangles `json:"tangles"`
+
+	metadata map[string]string
 }
 
 // NewAddDerivedMessage just initializes type and the passed fields.
-// Callers need to set the right tangle point themselves afterwards.
+// Callers need to set the right tangle point themselves afterwards. If the message has metadata that needs to be added,
+// function AddDerived.InsertMetadata should be used.
 func NewAddDerivedMessage(meta, sub refs.FeedRef, purpose string, nonce []byte) AddDerived {
 	return AddDerived{
 		Type: typeAddDerived,
@@ -75,7 +79,36 @@ func NewAddDerivedMessage(meta, sub refs.FeedRef, purpose string, nonce []byte) 
 		Nonce: nonce,
 
 		Tangles: make(refs.Tangles),
+
+		metadata: make(map[string]string),
 	}
+}
+
+// InsertMetadata enhances an existing AddDerived message with metadata, returning an error if the passed metadata
+// contains an unsupported key.
+func (derived *AddDerived) InsertMetadata(metadata map[string]string) error {
+	if derived.metadata == nil {
+		derived.metadata = make(map[string]string)
+	}
+	// attach any metadata (e.g. query info used in for index feeds), if any
+	for key, value := range metadata {
+		switch key {
+		case "querylang", "query":
+			// copy key + value from passed in map
+			derived.metadata[key] = value
+		default:
+			return fmt.Errorf("AddDerived does not support metadata key: %s", key)
+		}
+	}
+	return nil
+}
+
+func (derived *AddDerived) GetMetadata(key string) (string, bool) {
+	if derived.metadata == nil {
+		return "", false
+	}
+	val, has := derived.metadata[key]
+	return val, has
 }
 
 var (
@@ -97,6 +130,18 @@ type AddExisting struct {
 
 // NewAddExistingMessage just initializes type and the passed fields.
 // Callers need to set the right tangle point themselves afterwards.
+//
+// Format of the message (in Bendy Butt binary notation, see https://github.com/ssb-ngi-pointer/bendy-butt-spec):
+//  "type" => "metafeed/add/existing",
+//  "feedpurpose" => "main",
+//  "subfeed" => (BFE-encoded feed ID for the 'main' feed),
+//  "metafeed" => (BFE-encoded Bendy Butt feed ID for the meta feed),
+//  "tangles" => {
+//    "metafeed" => {
+//      "root" => (BFE nil),
+//      "previous" => (BFE nil)
+//    }
+//  }
 func NewAddExistingMessage(meta, sub refs.FeedRef, purpose string) AddExisting {
 	return AddExisting{
 		Type: typeAddExisting,
@@ -124,11 +169,23 @@ type Announce struct {
 }
 
 // NewAnnounceMessage returns a new Announce message.
-// Callers need to set the right tangle point themselves afterwards.
-func NewAnnounceMessage(f refs.FeedRef) Announce {
+// Callers need to set the right tangle point themselves afterwards. Message structure for the announcement:
+//
+// 	content: {
+// 	  type: 'metafeed/announce',
+// 	  metafeed: 'ssb:feed/bendybutt-v1/-oaWWDs8g73EZFUMfW37R_ULtFEjwKN_DczvdYihjbU=',
+// 	  tangles: {
+// 	  	metafeed: {
+// 	  		root: null,
+// 	  		previous: null
+// 	  	}
+// 	  }
+//  }
+func NewAnnounceMessage(mf refs.FeedRef) Announce {
+	// TODO: sign message using mf secret
 	return Announce{
 		Type:     "metafeed/announce",
-		MetaFeed: f,
+		MetaFeed: mf,
 
 		Tangles: make(refs.Tangles),
 	}
