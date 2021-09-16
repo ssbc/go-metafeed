@@ -13,6 +13,7 @@ package metamngmt
 
 import (
 	"fmt"
+
 	"github.com/zeebo/bencode"
 	refs "go.mindeco.de/ssb-refs"
 )
@@ -20,28 +21,6 @@ import (
 type Typed struct {
 	Type string `json:"type"`
 }
-
-// Seed is used to encrypt the seed as a private message to the main feed.
-// By doing this we allow the main feed to reconstruct the meta feed and all sub feeds from this seed.
-type Seed struct {
-	Type     string       `json:"type"`
-	MetaFeed refs.FeedRef `json:"metafeed"`
-	Seed     Base64String `json:"seed"`
-}
-
-// NewSeedMessage returns a new Seed with the type: alread set
-func NewSeedMessage(meta refs.FeedRef, seed []byte) Seed {
-	return Seed{
-		Type:     "metafeed/seed",
-		MetaFeed: meta,
-		Seed:     seed,
-	}
-}
-
-var (
-	_ bencode.Marshaler   = (*Seed)(nil)
-	_ bencode.Unmarshaler = (*Seed)(nil)
-)
 
 const (
 	typeAddExisting = "metafeed/add/existing"
@@ -167,34 +146,6 @@ type Announce struct {
 	MetaFeed refs.FeedRef `json:"metafeed"`
 	Tangles  refs.Tangles `json:"tangles"`
 }
-
-// NewAnnounceMessage returns a new Announce message.
-// Callers need to set the right tangle point themselves afterwards. Message structure for the announcement:
-//
-// 	content: {
-// 	  type: 'metafeed/announce',
-// 	  metafeed: 'ssb:feed/bendybutt-v1/-oaWWDs8g73EZFUMfW37R_ULtFEjwKN_DczvdYihjbU=',
-// 	  tangles: {
-// 	  	metafeed: {
-// 	  		root: null,
-// 	  		previous: null
-// 	  	}
-// 	  }
-//  }
-func NewAnnounceMessage(mf refs.FeedRef) Announce {
-	// TODO: sign message using mf secret
-	return Announce{
-		Type:     "metafeed/announce",
-		MetaFeed: mf,
-
-		Tangles: make(refs.Tangles),
-	}
-}
-
-var (
-	_ bencode.Marshaler   = (*Announce)(nil)
-	_ bencode.Unmarshaler = (*Announce)(nil)
-)
 
 // Tombstone is used to end the lifetime of a subfeed
 type Tombstone struct {
