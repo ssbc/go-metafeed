@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	refs "go.mindeco.de/ssb-refs"
+	refs "github.com/ssbc/go-ssb-refs"
 )
 
 // Good is the scaffolding for the whole vector file

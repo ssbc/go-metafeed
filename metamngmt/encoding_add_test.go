@@ -8,8 +8,8 @@ import (
 	"bytes"
 	"testing"
 
+	refs "github.com/ssbc/go-ssb-refs"
 	"github.com/stretchr/testify/require"
-	refs "go.mindeco.de/ssb-refs"
 )
 
 func TestAddDerivedWithoutMetadata(t *testing.T) {

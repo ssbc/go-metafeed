@@ -18,18 +18,18 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/zeebo/bencode"
 
-	"github.com/ssb-ngi-pointer/go-metafeed"
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/sign"
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/vectors"
-	"github.com/ssb-ngi-pointer/go-metafeed/metakeys"
-	refs "go.mindeco.de/ssb-refs"
+	"github.com/ssbc/go-metafeed"
+	"github.com/ssbc/go-metafeed/internal/bencodeext"
+	"github.com/ssbc/go-metafeed/internal/sign"
+	"github.com/ssbc/go-metafeed/internal/vectors"
+	"github.com/ssbc/go-metafeed/metakeys"
+	refs "github.com/ssbc/go-ssb-refs"
 )
 
 var zeroPrevious refs.MessageRef
 
 // This generates the "bad messages" vector file.
-// See https://github.com/ssb-ngi-pointer/bendy-butt-spec/#validation for more
+// See https://github.com/ssbc/bendy-butt-spec/#validation for more
 func TestGenerateTestVectorAWithInvalidMessages(t *testing.T) {
 	r := require.New(t)
 
@@ -605,7 +605,7 @@ func assertValidBencode(t *testing.T, data []byte) bool {
 }
 
 // not actually a proper metafeed message, it just needs to look like one
-// see https://github.com/ssb-ngi-pointer/go-metafeed/issues/18#issuecomment-896670827
+// see https://github.com/ssbc/go-metafeed/issues/18#issuecomment-896670827
 func newTestMessage(i int) []interface{} {
 	return []interface{}{
 		map[string]interface{}{"type": bencodeext.String("test"), "i": i},

@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
-	refs "go.mindeco.de/ssb-refs"
+	"github.com/ssbc/go-metafeed/internal/bencodeext"
+	refs "github.com/ssbc/go-ssb-refs"
 )
 
 // Base64String encodes a slice of bytes as a base64 string in unicode.

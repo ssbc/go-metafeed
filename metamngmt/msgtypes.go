@@ -14,8 +14,8 @@ package metamngmt
 import (
 	"fmt"
 
+	refs "github.com/ssbc/go-ssb-refs"
 	"github.com/zeebo/bencode"
-	refs "go.mindeco.de/ssb-refs"
 )
 
 type Typed struct {

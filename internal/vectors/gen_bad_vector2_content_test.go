@@ -13,20 +13,20 @@ import (
 	"os"
 	"testing"
 
+	refs "github.com/ssbc/go-ssb-refs"
 	"github.com/stretchr/testify/require"
 	"github.com/zeebo/bencode"
-	refs "go.mindeco.de/ssb-refs"
 
-	"github.com/ssb-ngi-pointer/go-metafeed"
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/sign"
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/vectors"
-	"github.com/ssb-ngi-pointer/go-metafeed/metakeys"
-	"github.com/ssb-ngi-pointer/go-metafeed/metamngmt"
+	"github.com/ssbc/go-metafeed"
+	"github.com/ssbc/go-metafeed/internal/bencodeext"
+	"github.com/ssbc/go-metafeed/internal/sign"
+	"github.com/ssbc/go-metafeed/internal/vectors"
+	"github.com/ssbc/go-metafeed/metakeys"
+	"github.com/ssbc/go-metafeed/metamngmt"
 )
 
 // This generates the "bad content" vector file.
-// See the part about content in https://github.com/ssb-ngi-pointer/bendy-butt-spec/#validation for more
+// See the part about content in https://github.com/ssbc/bendy-butt-spec/#validation for more
 func TestGenerateTestVectorBWithInvalidContent(t *testing.T) {
 	r := require.New(t)
 

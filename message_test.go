@@ -9,8 +9,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ssb-ngi-pointer/go-metafeed"
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/vectors"
+	"github.com/ssbc/go-metafeed"
+	"github.com/ssbc/go-metafeed/internal/vectors"
 	"github.com/stretchr/testify/require"
 )
 

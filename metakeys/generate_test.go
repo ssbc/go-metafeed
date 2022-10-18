@@ -8,9 +8,9 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/ssb-ngi-pointer/go-metafeed/metakeys"
+	"github.com/ssbc/go-metafeed/metakeys"
+	refs "github.com/ssbc/go-ssb-refs"
 	"github.com/stretchr/testify/require"
-	refs "go.mindeco.de/ssb-refs"
 )
 
 func TestGenSeed(t *testing.T) {

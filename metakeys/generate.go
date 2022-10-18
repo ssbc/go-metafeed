@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"io"
 
-	refs "go.mindeco.de/ssb-refs"
+	refs "github.com/ssbc/go-ssb-refs"
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/hkdf"
 )
