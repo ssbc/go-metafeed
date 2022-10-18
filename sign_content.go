@@ -10,8 +10,8 @@ import (
 	"github.com/zeebo/bencode"
 	"golang.org/x/crypto/ed25519"
 
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/sign"
-	"go.mindeco.de/ssb-refs/tfk"
+	"github.com/ssbc/go-metafeed/internal/sign"
+	"github.com/ssbc/go-ssb-refs/tfk"
 )
 
 var (

@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ssb-ngi-pointer/go-metafeed"
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/vectors"
-	"github.com/ssb-ngi-pointer/go-metafeed/metakeys"
-	"github.com/ssb-ngi-pointer/go-metafeed/metamngmt"
+	"github.com/ssbc/go-metafeed"
+	"github.com/ssbc/go-metafeed/internal/vectors"
+	"github.com/ssbc/go-metafeed/metakeys"
+	"github.com/ssbc/go-metafeed/metamngmt"
+	refs "github.com/ssbc/go-ssb-refs"
 	"github.com/stretchr/testify/require"
 	"github.com/zeebo/bencode"
-	refs "go.mindeco.de/ssb-refs"
 )
 
 // TODO:

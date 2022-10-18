@@ -12,8 +12,8 @@ import (
 	"github.com/zeebo/bencode"
 	"golang.org/x/crypto/ed25519"
 
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/sign"
-	refs "go.mindeco.de/ssb-refs"
+	"github.com/ssbc/go-metafeed/internal/sign"
+	refs "github.com/ssbc/go-ssb-refs"
 )
 
 // NewEncoder creates an encoding facility which uses the passed author to sign new messages

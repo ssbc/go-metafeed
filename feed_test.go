@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
+	refs "github.com/ssbc/go-ssb-refs"
+	"github.com/ssbc/go-ssb-refs/tfk"
 	"github.com/stretchr/testify/require"
 	"github.com/zeebo/bencode"
-	refs "go.mindeco.de/ssb-refs"
-	"go.mindeco.de/ssb-refs/tfk"
 
-	metafeed "github.com/ssb-ngi-pointer/go-metafeed"
+	metafeed "github.com/ssbc/go-metafeed"
 )
 
 func check(err error) {

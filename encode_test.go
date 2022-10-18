@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/vectors"
+	"github.com/ssbc/go-metafeed/internal/vectors"
+	refs "github.com/ssbc/go-ssb-refs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	refs "go.mindeco.de/ssb-refs"
 	"golang.org/x/crypto/ed25519"
 )
 

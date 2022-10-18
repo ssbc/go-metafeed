@@ -9,8 +9,8 @@ import (
 
 	"github.com/zeebo/bencode"
 
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
-	"go.mindeco.de/ssb-refs/tfk"
+	"github.com/ssbc/go-metafeed/internal/bencodeext"
+	"github.com/ssbc/go-ssb-refs/tfk"
 )
 
 type wrappedAddDerived struct {

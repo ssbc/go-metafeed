@@ -7,9 +7,9 @@ package metamngmt
 import (
 	"fmt"
 
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
+	"github.com/ssbc/go-metafeed/internal/bencodeext"
+	"github.com/ssbc/go-ssb-refs/tfk"
 	"github.com/zeebo/bencode"
-	"go.mindeco.de/ssb-refs/tfk"
 )
 
 type wrappedTombstone struct {

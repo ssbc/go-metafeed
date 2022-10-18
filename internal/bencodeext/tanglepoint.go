@@ -8,9 +8,9 @@ import (
 	"bytes"
 	"fmt"
 
+	refs "github.com/ssbc/go-ssb-refs"
+	"github.com/ssbc/go-ssb-refs/tfk"
 	"github.com/zeebo/bencode"
-	refs "go.mindeco.de/ssb-refs"
-	"go.mindeco.de/ssb-refs/tfk"
 )
 
 // Tangles are a named set of tanglepoints

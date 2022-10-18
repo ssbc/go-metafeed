@@ -5,7 +5,7 @@
 package metamngmt
 
 import (
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
+	"github.com/ssbc/go-metafeed/internal/bencodeext"
 	"github.com/zeebo/bencode"
 )
 

@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/bencodeext"
+	"github.com/ssbc/go-metafeed/internal/bencodeext"
+	refs "github.com/ssbc/go-ssb-refs"
+	"github.com/ssbc/go-ssb-refs/tfk"
 	"github.com/zeebo/bencode"
-	refs "go.mindeco.de/ssb-refs"
-	"go.mindeco.de/ssb-refs/tfk"
 )
 
 // Payload represents a single Payload on a metafeed.

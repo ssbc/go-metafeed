@@ -18,8 +18,8 @@ import (
 	"go.mindeco.de/encodedTime"
 	"golang.org/x/crypto/ed25519"
 
-	"github.com/ssb-ngi-pointer/go-metafeed/internal/sign"
-	refs "go.mindeco.de/ssb-refs"
+	"github.com/ssbc/go-metafeed/internal/sign"
+	refs "github.com/ssbc/go-ssb-refs"
 )
 
 // Message is used to create the (un)marshal a message to and from bencode while also acting as refs.Message for the rest of the ssb system.
