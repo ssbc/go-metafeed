@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/zeebo/bencode"
-	"go.mindeco.de/encodedTime"
 	"golang.org/x/crypto/ed25519"
 
 	"github.com/ssbc/go-metafeed/internal/sign"
@@ -219,7 +218,7 @@ func (msg *Message) ValueContent() *refs.Value {
 	val.Sequence = int64(msg.payload.Sequence)
 	val.Hash = "metafeed-v1"
 	val.Signature = base64.StdEncoding.EncodeToString(msg.Signature) + ".metafeed-v1.sig.ed25519"
-	val.Timestamp = encodedTime.Millisecs(msg.Claimed())
+	val.Timestamp = refs.Millisecs(msg.Claimed())
 
 	// TODO: peek at first byte (tfk indicating box2 for instance)
 	var helper interface{}
